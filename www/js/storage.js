@@ -48,25 +48,44 @@
         // conexão já existe -- segue a vida
       }
       await CapacitorSQLite.open({ database: DB_NAME });
-      await CapacitorSQLite.execute({
-        database: DB_NAME,
-        statements:
-          'CREATE TABLE IF NOT EXISTS app_state (' +
-          '  id INTEGER PRIMARY KEY CHECK (id = 1),' +
-          '  json TEXT NOT NULL,' +
-          '  atualizado_em TEXT NOT NULL' +
-          ');' +
-          'CREATE TABLE IF NOT EXISTS settings (' +
-          '  id INTEGER PRIMARY KEY CHECK (id = 1),' +
-          '  atendente TEXT NOT NULL DEFAULT \'Simone\',' +
-          '  taxa_padrao REAL NOT NULL DEFAULT 30,' +
-          '  servidor_url TEXT NOT NULL DEFAULT \'\'' +
-          ');'
-      });
-      // Migração: quem já tinha o app da Fase 1 instalado não tem essa
-      // coluna ainda. Em vez de só tentar o ALTER TABLE e torcer pra falha
-      // ser "coluna já existe" (podia mascarar um erro de verdade),
-      // checamos antes com PRAGMA table_info se a coluna já existe.
+      // Cada CREATE TABLE num execute() separado (em vez de um único texto
+      // com várias instruções separadas por ";") -- em alguns aparelhos, o
+      // execute() com múltiplas instruções de uma vez só rodava a primeira
+      // e ignorava o resto sem erro nenhum, deixando a tabela "settings"
+      // sem ser criada de verdade (só percebido quando Config tentou salvar
+      // pela primeira vez, bem depois).
+      try {
+        await CapacitorSQLite.execute({
+          database: DB_NAME,
+          statements:
+            'CREATE TABLE IF NOT EXISTS app_state (' +
+            '  id INTEGER PRIMARY KEY CHECK (id = 1),' +
+            '  json TEXT NOT NULL,' +
+            '  atualizado_em TEXT NOT NULL' +
+            ');'
+        });
+      } catch (e) {
+        console.error('Falha ao criar tabela app_state', e);
+      }
+      try {
+        await CapacitorSQLite.execute({
+          database: DB_NAME,
+          statements:
+            'CREATE TABLE IF NOT EXISTS settings (' +
+            '  id INTEGER PRIMARY KEY CHECK (id = 1),' +
+            '  atendente TEXT NOT NULL DEFAULT \'Simone\',' +
+            '  taxa_padrao REAL NOT NULL DEFAULT 30,' +
+            '  servidor_url TEXT NOT NULL DEFAULT \'\',' +
+            '  app_api_token TEXT NOT NULL DEFAULT \'\'' +
+            ');'
+        });
+      } catch (e) {
+        console.error('Falha ao criar tabela settings', e);
+      }
+      // Migração: quem já tinha o app de uma versão anterior pode ter a
+      // tabela settings sem essa coluna ainda. Checamos com PRAGMA
+      // table_info antes do ALTER (em vez de um try/catch cego que
+      // mascararia um erro de verdade).
       try {
         var colunas = await query('PRAGMA table_info(settings)');
         var jaTem = colunas.some(function (c) { return c.name === 'app_api_token'; });
