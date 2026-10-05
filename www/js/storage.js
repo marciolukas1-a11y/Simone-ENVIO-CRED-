@@ -64,14 +64,21 @@
           ');'
       });
       // Migração: quem já tinha o app da Fase 1 instalado não tem essa
-      // coluna ainda. SQLite não tem "ADD COLUMN IF NOT EXISTS" -- tenta e
-      // ignora o erro se a coluna já existir.
+      // coluna ainda. Em vez de só tentar o ALTER TABLE e torcer pra falha
+      // ser "coluna já existe" (podia mascarar um erro de verdade),
+      // checamos antes com PRAGMA table_info se a coluna já existe.
       try {
-        await CapacitorSQLite.execute({
-          database: DB_NAME,
-          statements: 'ALTER TABLE settings ADD COLUMN app_api_token TEXT NOT NULL DEFAULT \'\';'
-        });
-      } catch (e) { /* coluna já existe -- instalação nova ou já migrada */ }
+        var colunas = await query('PRAGMA table_info(settings)');
+        var jaTem = colunas.some(function (c) { return c.name === 'app_api_token'; });
+        if (!jaTem) {
+          await CapacitorSQLite.execute({
+            database: DB_NAME,
+            statements: 'ALTER TABLE settings ADD COLUMN app_api_token TEXT NOT NULL DEFAULT \'\';'
+          });
+        }
+      } catch (e) {
+        console.error('Falha na migração da coluna app_api_token', e);
+      }
     })();
     return ready;
   }

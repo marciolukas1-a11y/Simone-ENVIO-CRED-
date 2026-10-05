@@ -458,8 +458,25 @@ function openWhatsApp(e){
   }
 }
 
+/* ---------- Proteção contra tela travada em branco ---------- */
+function mostrarErroFatal(origem,erro){
+  console.error('Erro em '+origem,erro);
+  try{
+    var msg=(erro&&(erro.message||String(erro)))||'erro desconhecido';
+    sheet.hidden=false;
+    form.className='';
+    form.innerHTML='<h3>Deu um problema</h3>'+
+     '<p class="note" style="margin:0">Aconteceu um erro em "'+esc(origem)+'": '+esc(msg)+'</p>'+
+     '<p class="note" style="margin:0">Tira um print desta tela e manda, assim dá pra corrigir certo.</p>'+
+     '<div class="btns"><button class="btn primary" type="button" data-act="close">Fechar</button></div>';
+  }catch(e2){ /* se nem isso funcionar, não tem mais o que fazer aqui */ }
+}
+window.addEventListener('error',function(e){mostrarErroFatal('app (erro geral)',e.error||e.message)});
+window.addEventListener('unhandledrejection',function(e){mostrarErroFatal('app (promessa)',e.reason)});
+
 /* ---------- Events ---------- */
 document.addEventListener('click',function(e){
+ try{
   if(e.target.closest('[data-wa]')){openWhatsApp(e);return}
   var tb=e.target.closest('[data-tab]');
   if(tb){ui.tab=tb.getAttribute('data-tab');render();$main.scrollTop=0;return}
@@ -519,6 +536,7 @@ document.addEventListener('click',function(e){
     var ta=document.getElementById('copiloto_sugestao');
     if(ta)copyText(ta.value,function(){},function(){});
   }
+ }catch(erro){mostrarErroFatal('clique em "'+(t&&t.getAttribute&&t.getAttribute('data-act')||'?')+'"',erro)}
 });
 document.addEventListener('change',function(e){
   if(e.target.id==='s_cli'){S.sim.clientId=e.target.value;save();updateSim()}
