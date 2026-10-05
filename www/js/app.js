@@ -286,28 +286,54 @@ async function sincronizarObjetoComServidor(item){
 }
 
 /* ---------- Configurações ---------- */
-function configSheet(){
-  form.className='config';
-  openSheet('<h3>Configurações</h3>'+
-   '<label class="f">Nome de quem atende<input name="atendente" required value="'+esc(ATENDENTE)+'"></label>'+
-   '<label class="f">Taxa padrão do simulador (% ao mês)<input name="taxa_padrao" type="number" inputmode="decimal" min="0" step="0.1" value="'+esc(TAXA_PADRAO)+'"></label>'+
-   '<label class="f">Endereço do servidor (motor de atendimento)<input name="servidor_url" type="url" placeholder="http://192.168.0.10:3000" value="'+esc(SERVIDOR_URL)+'"></label>'+
-   '<label class="f">Token da API do servidor (APP_API_TOKEN)<input name="app_api_token" type="text" autocomplete="off" value="'+esc(APP_API_TOKEN)+'"></label>'+
-   '<p class="note" style="margin:0">Endereço e token ligam este app ao motor de atendimento por IA no WhatsApp (aba Conversas e modo copiloto). Pode deixar em branco até a Fase 2 estar rodando no Termux.</p>'+
-   '<div class="btns">'+
-   '<button class="btn" type="button" data-act="parearWhatsAppSheet">Parear WhatsApp</button>'+
-   '</div>'+
-   '<div class="btns"><button class="btn primary" type="submit">Salvar</button><button class="btn" type="button" data-act="close">Cancelar</button></div>',
-   async function(fd){
-     ATENDENTE=fd.get('atendente').trim()||'Simone';
-     TAXA_PADRAO=Number(fd.get('taxa_padrao'))||0;
-     SERVIDOR_URL=fd.get('servidor_url').trim();
-     APP_API_TOKEN=fd.get('app_api_token').trim();
-     try{
-       await window.EnvioCredStorage.saveSettings({atendente:ATENDENTE,taxa_padrao:TAXA_PADRAO,servidor_url:SERVIDOR_URL,app_api_token:APP_API_TOKEN});
-     }catch(e){storageOk=false;console.error('Falha ao salvar configurações',e)}
-     form.className='';closeSheet();render(true);
-   });
+/* ---------- Configuração e WhatsApp ----------
+ * Igual às Chaves de IA: fixo no topo da tela principal, fora da janela
+ * flutuante (sheet) -- essa janela trava a tela inteira em alguns
+ * aparelhos (ver histórico), e esta é a configuração mais crítica de
+ * todas (sem ela, não tem como ligar no motor de IA nem parear o
+ * WhatsApp), então não pode depender de uma tela que pode travar.
+ */
+function mostrarCamposConfig(mostrar){
+  var campos=document.getElementById('config_campos');
+  var botao=document.getElementById('config_toggle_btn');
+  if(campos)campos.hidden=!mostrar;
+  if(botao)botao.textContent=mostrar?'Esconder':'Editar';
+  if(mostrar)atualizarStatusWhatsApp();
+}
+function toggleConfigTopo(){
+  var campos=document.getElementById('config_campos');
+  mostrarCamposConfig(campos?campos.hidden:true);
+}
+function carregarConfigTopo(){
+  var m=document.getElementById('config_topo_msg');
+  var elAtendente=document.getElementById('cfg_atendente');
+  var elTaxa=document.getElementById('cfg_taxa');
+  var elServidor=document.getElementById('cfg_servidor');
+  var elToken=document.getElementById('cfg_token');
+  if(elAtendente)elAtendente.value=ATENDENTE;
+  if(elTaxa)elTaxa.value=TAXA_PADRAO;
+  if(elServidor)elServidor.value=SERVIDOR_URL;
+  if(elToken)elToken.value=APP_API_TOKEN;
+  if(m)m.textContent=SERVIDOR_URL?('Servidor configurado: '+SERVIDOR_URL):'Servidor ainda não configurado.';
+  // Sem servidor configurado ainda: deixa aberto, é a primeira configuração.
+  mostrarCamposConfig(!SERVIDOR_URL);
+}
+async function salvarConfigTopo(){
+  var m=document.getElementById('config_topo_msg');
+  ATENDENTE=(document.getElementById('cfg_atendente').value||'').trim()||'Simone';
+  TAXA_PADRAO=Number(document.getElementById('cfg_taxa').value)||0;
+  SERVIDOR_URL=(document.getElementById('cfg_servidor').value||'').trim();
+  APP_API_TOKEN=(document.getElementById('cfg_token').value||'').trim();
+  try{
+    await window.EnvioCredStorage.saveSettings({atendente:ATENDENTE,taxa_padrao:TAXA_PADRAO,servidor_url:SERVIDOR_URL,app_api_token:APP_API_TOKEN});
+    if(m)m.textContent=SERVIDOR_URL?('Salvo ✓. Servidor: '+SERVIDOR_URL):'Salvo ✓ (sem endereço de servidor ainda).';
+  }catch(e){
+    storageOk=false;
+    if(m)m.textContent='Não consegui salvar: '+e.message;
+    return;
+  }
+  render(true);
+  atualizarStatusWhatsApp();
 }
 
 /* ---------- Chaves de IA (Groq, SearchApi) ----------
@@ -382,23 +408,10 @@ async function sincronizarChavesComServidor(){
 }
 
 /* ---------- Parear WhatsApp (código de 8 dígitos) ---------- */
-function parearWhatsAppSheet(){
-  form.className='';
-  if(!SERVIDOR_URL){
-    openSheet('<h3>Parear WhatsApp</h3><p class="note" style="margin:0">Configure primeiro o endereço do servidor (campo acima) e salve, depois volte aqui.</p>'+
-     '<div class="btns"><button class="btn" type="button" data-act="close">Fechar</button></div>',function(){});
-    return;
-  }
-  openSheet('<h3>Parear WhatsApp</h3>'+
-   '<p class="note" id="parear_msg" style="margin:0">Consultando status...</p>'+
-   '<div id="parear_resultado"></div>'+
-   '<div class="btns"><button class="btn primary" type="button" data-act="gerarCodigoPareamento">Gerar código</button><button class="btn" type="button" data-act="close">Fechar</button></div>',
-   function(){});
-  atualizarStatusWhatsApp();
-}
 async function atualizarStatusWhatsApp(){
   var m=document.getElementById('parear_msg');
   if(!m)return;
+  if(!SERVIDOR_URL){m.textContent='Configure o endereço do servidor acima primeiro.';return}
   try{
     var s=await window.EnvioCredApi.statusWhatsApp(SERVIDOR_URL,APP_API_TOKEN);
     var textos={conectado:'Conectado ✓',pareando:'Aguardando pareamento -- toque em "Gerar código"',desconectado:'Desconectado'};
@@ -571,7 +584,8 @@ document.addEventListener('click',function(e){
   var act=t.getAttribute('data-act'),id=t.getAttribute('data-id');
   if(act==='close'){form.className='';closeSheet()}
   else if(act==='backup')backupSheet();
-  else if(act==='config')configSheet();
+  else if(act==='toggleConfigTopo')toggleConfigTopo();
+  else if(act==='salvarConfigTopo')salvarConfigTopo();
   else if(act==='salvarChavesTopo')salvarChavesTopo();
   else if(act==='toggleChavesTopo')toggleChavesTopo();
   else if(act==='gerarDescricaoItem')gerarDescricaoItem();
@@ -619,8 +633,6 @@ document.addEventListener('click',function(e){
   }
   else if(act==='responderConversa'){responderConversaSheet(t.getAttribute('data-tel'))}
   else if(act==='alternarPausaIa'){alternarPausaIa()}
-  else if(act==='chavesIaSheet'){chavesIaSheet()}
-  else if(act==='parearWhatsAppSheet'){parearWhatsAppSheet()}
   else if(act==='gerarCodigoPareamento'){gerarCodigoPareamento()}
   else if(act==='copiarSugestaoCopiloto'){
     var ta=document.getElementById('copiloto_sugestao');
@@ -665,6 +677,7 @@ async function boot(){
     S=seed();
   }
   render();
+  carregarConfigTopo();
   carregarChavesTopo();
   sincronizarChavesComServidor().catch(function(e){console.error('Sincronização de chaves adiada',e)});
 }

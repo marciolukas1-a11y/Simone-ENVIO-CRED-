@@ -131,7 +131,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
   <header class="top">
     <div class="brand">ENVIO CRED<small>Clientes, empréstimos e vendas</small></div>
     <div class="hdrbtns">
-      <button class="linkbtn" data-act="config" type="button">Config</button>
+      <button class="linkbtn" data-act="toggleConfigTopo" type="button">Config</button>
       <button class="linkbtn" data-act="backup" type="button">Backup</button>
     </div>
   </header>
@@ -145,6 +145,25 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
       <label class="f">Chave da Groq<input id="chaves_groq" type="text" autocomplete="off" placeholder="gsk_..."></label>
       <label class="f">Chave da SearchApi.io<input id="chaves_research" type="text" autocomplete="off"></label>
       <div class="btns"><button type="button" class="btn primary" data-act="salvarChavesTopo">Salvar no cofre</button></div>
+    </div>
+  </section>
+  <section class="chaves-top" id="config_secao">
+    <div class="row">
+      <h3>Configuração e WhatsApp</h3>
+      <button type="button" class="linkbtn" id="config_toggle_btn" data-act="toggleConfigTopo">Editar</button>
+    </div>
+    <p class="note" id="config_topo_msg" style="margin:0">Carregando...</p>
+    <div id="config_campos" hidden>
+      <label class="f">Nome de quem atende<input id="cfg_atendente"></label>
+      <label class="f">Taxa padrão do simulador (% ao mês)<input id="cfg_taxa" type="number" inputmode="decimal" min="0" step="0.1"></label>
+      <label class="f">Endereço do servidor (motor de atendimento)<input id="cfg_servidor" type="url" placeholder="http://localhost:3000"></label>
+      <label class="f">Token da API do servidor<input id="cfg_token" type="text" autocomplete="off"></label>
+      <div class="btns"><button type="button" class="btn primary" data-act="salvarConfigTopo">Salvar</button></div>
+      <div style="border-top:1px solid #DAE2E0;margin-top:6px;padding-top:10px">
+        <p class="note" id="parear_msg" style="margin:0">Status do WhatsApp: --</p>
+        <div id="parear_resultado"></div>
+        <div class="btns" style="margin-top:8px"><button type="button" class="btn" data-act="gerarCodigoPareamento">Gerar código de pareamento</button></div>
+      </div>
     </div>
   </section>
   <main id="main" aria-live="polite"></main>
