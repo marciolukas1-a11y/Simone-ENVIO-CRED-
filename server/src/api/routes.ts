@@ -1,0 +1,141 @@
+import type { FastifyInstance } from 'fastify';
+import { exigirToken } from './auth.js';
+import type { WhatsAppGateway } from '../whatsapp/WhatsAppGateway.js';
+import { listarClientes, buscarClientePorTelefone, apagarDadosCliente } from '../domain/clientes.js';
+import { listarTodosObjetos, criarObjeto, atualizarObjeto } from '../domain/objetos.js';
+import {
+  listarConversas,
+  assumirConversa,
+  devolverParaIa,
+  listarMensagens,
+  historicoRecente,
+  registrarMensagem,
+} from '../domain/conversas.js';
+import { obterConfiguracoes, salvarConfiguracoes, pausarIa, retomarIa } from '../domain/configuracoes.js';
+import { conversarComGroq } from '../ai/groqClient.js';
+import { logger } from '../logging/logger.js';
+
+export function registrarRotas(app: FastifyInstance, gateway: WhatsAppGateway): void {
+  app.get('/health', async () => ({ ok: true }));
+
+  app.addHook('preHandler', async (req, reply) => {
+    if (req.url === '/health') return;
+    await exigirToken(req, reply);
+  });
+
+  // --- WhatsApp: pareamento e status ---
+  app.get('/api/whatsapp/status', async () => ({ status: gateway.statusAtual() }));
+
+  app.post('/api/whatsapp/parear', async (req, reply) => {
+    try {
+      const codigo = await gateway.obterCodigoPareamento();
+      return { codigo };
+    } catch (e: any) {
+      reply.code(400);
+      return { erro: e.message };
+    }
+  });
+
+  // --- Clientes ---
+  app.get('/api/clientes', async () => listarClientes());
+
+  app.delete('/api/clientes/:telefone', async (req) => {
+    const { telefone } = req.params as { telefone: string };
+    apagarDadosCliente(telefone);
+    return { ok: true };
+  });
+
+  // --- Objetos ---
+  app.get('/api/objetos', async () => listarTodosObjetos());
+
+  app.post('/api/objetos', async (req) => {
+    const body = req.body as any;
+    return criarObjeto({
+      nome: body.nome,
+      preco: Number(body.preco) || 0,
+      status: body.status ?? 'disponivel',
+      descricao: body.descricao ?? '',
+    });
+  });
+
+  app.put('/api/objetos/:id', async (req) => {
+    const { id } = req.params as { id: string };
+    return atualizarObjeto(Number(id), req.body as any);
+  });
+
+  // --- Configurações ---
+  app.get('/api/configuracoes', async () => obterConfiguracoes());
+
+  app.put('/api/configuracoes', async (req) => salvarConfiguracoes(req.body as any));
+
+  app.post('/api/ia/pausar', async () => {
+    pausarIa();
+    return { ok: true };
+  });
+
+  app.post('/api/ia/retomar', async () => {
+    retomarIa();
+    return { ok: true };
+  });
+
+  // --- Conversas ---
+  app.get('/api/conversas', async () => listarConversas());
+
+  app.get('/api/conversas/:telefone/mensagens', async (req) => {
+    const { telefone } = req.params as { telefone: string };
+    return listarMensagens(telefone);
+  });
+
+  app.post('/api/conversas/:telefone/assumir', async (req) => {
+    const { telefone } = req.params as { telefone: string };
+    assumirConversa(telefone);
+    return { ok: true };
+  });
+
+  app.post('/api/conversas/:telefone/devolver', async (req) => {
+    const { telefone } = req.params as { telefone: string };
+    devolverParaIa(telefone);
+    return { ok: true };
+  });
+
+  // Simone responde pelo app -- vai direto pro WhatsApp, sem passar pela IA.
+  app.post('/api/conversas/:telefone/responder', async (req, reply) => {
+    const { telefone } = req.params as { telefone: string };
+    const { texto } = req.body as { texto: string };
+    if (!texto || !texto.trim()) {
+      reply.code(400);
+      return { erro: 'texto é obrigatório' };
+    }
+    await gateway.enviarTexto(telefone, texto);
+    registrarMensagem(telefone, 'saida', texto, 'simone');
+    return { ok: true };
+  });
+
+  // --- Modo copiloto: Simone compartilha uma mensagem do WhatsApp pro app,
+  // a IA sugere uma resposta, ela copia/edita e manda ela mesma. Não manda
+  // nada pelo WhatsApp sozinho -- sem risco de bloqueio, funciona mesmo com
+  // o WhatsApp do servidor desconectado.
+  app.post('/api/copiloto/sugestao', async (req, reply) => {
+    const { telefone, mensagem_cliente } = req.body as { telefone?: string; mensagem_cliente: string };
+    if (!mensagem_cliente || !mensagem_cliente.trim()) {
+      reply.code(400);
+      return { erro: 'mensagem_cliente é obrigatória' };
+    }
+    try {
+      const cfg = obterConfiguracoes();
+      const historico = telefone ? historicoRecente(telefone, 10) : [];
+      const sugestao = await conversarComGroq(
+        telefone ?? 'copiloto-sem-numero',
+        cfg.atendente,
+        mensagem_cliente,
+        historico,
+        () => {} // no modo copiloto, "transferir pra humano" não faz sentido -- já é a Simone usando
+      );
+      return { sugestao };
+    } catch (e) {
+      logger.error(e, 'Falha gerando sugestão do copiloto');
+      reply.code(502);
+      return { erro: 'não consegui gerar sugestão agora' };
+    }
+  });
+}
