@@ -5,7 +5,7 @@ import { config } from '../config.js';
 export function criarResearchProvider(): ResearchProvider {
   switch (config.research.provider) {
     case 'searchapi':
-      return new SearchApiProvider(config.research.apiKey);
+      return new SearchApiProvider();
     default:
       throw new Error(
         `RESEARCH_PROVIDER "${config.research.provider}" desconhecido. Opções: searchapi.`

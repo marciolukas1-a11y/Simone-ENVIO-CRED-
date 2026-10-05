@@ -57,6 +57,21 @@
     obterConfiguracoesServidor: function (servidorUrl, token) {
       return chamar(servidorUrl, token, '/api/configuracoes');
     },
+    statusWhatsApp: function (servidorUrl, token) {
+      return chamar(servidorUrl, token, '/api/whatsapp/status');
+    },
+    parearWhatsApp: function (servidorUrl, token) {
+      return chamar(servidorUrl, token, '/api/whatsapp/parear', { method: 'POST' });
+    },
+    salvarChavesDeIa: function (servidorUrl, token, groqApiKey, researchApiKey) {
+      return chamar(servidorUrl, token, '/api/chaves', {
+        method: 'POST',
+        body: { groq_api_key: groqApiKey, research_api_key: researchApiKey }
+      });
+    },
+    statusChavesDeIa: function (servidorUrl, token) {
+      return chamar(servidorUrl, token, '/api/chaves/status');
+    },
     sugestaoCopiloto: function (servidorUrl, token, telefone, mensagemCliente) {
       return chamar(servidorUrl, token, '/api/copiloto/sugestao', {
         method: 'POST',

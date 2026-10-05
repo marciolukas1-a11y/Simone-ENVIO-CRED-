@@ -3,3 +3,4 @@ dist/
 dados/
 .env
 *.log
+.env.teste-temp

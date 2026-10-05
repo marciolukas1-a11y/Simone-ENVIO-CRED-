@@ -29,57 +29,64 @@ possível sem reescrever tudo — ver `src/whatsapp/WhatsAppGateway.ts`).
 **Modo copiloto** (seção mais abaixo) é a alternativa **sem esse risco**:
 a IA só sugere a resposta, a Simone manda ela mesma pelo WhatsApp normal.
 
-## Pré-requisitos
+## Não precisa de computador — só o celular, pelo Termux
 
-- Node.js 20+ (no Termux: `pkg install nodejs`)
-- Uma chave da Groq (console.groq.com)
-- Uma chave da SearchApi.io (searchapi.io) — já existente
+Toda a configuração que importa (chaves de IA, pareamento do WhatsApp)
+acontece **dentro do app ENVIO CRED**, não editando arquivos. No Termux
+você só faz a instalação (copiar e colar os comandos abaixo) e deixa
+rodando — nunca mais precisa mexer em texto.
 
-## Instalação
+## Instalação (copiar e colar, uma vez só)
 
 ```bash
-cd server
+pkg install nodejs git
+git clone https://github.com/marciolukas1-a11y/Simone-ENVIO-CRED-.git
+cd Simone-ENVIO-CRED-/server
 npm install
-cp .env.example .env
-```
-
-Edite o `.env` e preencha:
-
-- `GROQ_API_KEY` — sua chave da Groq
-- `RESEARCH_API_KEY` — sua chave da SearchApi.io
-- `APP_API_TOKEN` — invente uma senha longa (ex: rode `openssl rand -hex
-  32` se tiver no Termux, ou qualquer texto aleatório comprido) — é o que
-  o app ENVIO CRED vai usar pra falar com este servidor
-- `WHATSAPP_PHONE_NUMBER` — já vem preenchido com 5583999628152
-
-## Rodando
-
-```bash
 npm run build
 npm start
 ```
 
-(ou `npm run dev` durante o desenvolvimento, recarrega sozinho)
+Na primeira vez que isso rodar, vai aparecer no Termux um aviso bem
+visível com um **token gerado automaticamente**, parecido com isto:
 
-Na primeira vez, o WhatsApp ainda não está pareado. Com o servidor
-rodando, em outro terminal (ou no navegador, ou no Postman):
-
-```bash
-curl -X POST http://localhost:3000/api/whatsapp/parear \
-  -H "Authorization: Bearer SEU_APP_API_TOKEN"
+```
+════════════════════════════════════════════════════
+TOKEN GERADO AUTOMATICAMENTE -- copie e cole em Config, no app:
+3f9a7c2e8b1d4f6a0c5e9b2d7a4f1c8e6b3d9a0f2c5e8b1d
+════════════════════════════════════════════════════
 ```
 
-Isso devolve um código de 8 dígitos:
+**Copie esse código.** Abra o app ENVIO CRED no celular, vá em **Config**,
+preencha:
 
-```json
-{ "codigo": "ABCD-1234" }
-```
+- **Endereço do servidor**: `http://localhost:3000` (se o app e o
+  servidor estão no mesmo celular, que é o caso aqui)
+- **Token da API do servidor**: cole o código que apareceu no Termux
 
-No celular da empresa: **WhatsApp Business > Configurações > Aparelhos
-conectados > Conectar um aparelho > Conectar com número de telefone** e
-digite esse código. A sessão fica salva em `WHATSAPP_SESSION_DIR` — não
-precisa parear de novo a cada vez que o servidor reiniciar, só se a
-sessão cair de verdade (ver `/api/whatsapp/status`).
+Toque em **Salvar**. Pronto — o app já está ligado ao servidor.
+
+## Configurar as chaves de IA (pelo app, sem editar nada)
+
+Ainda em **Config**, toque em **Chaves de IA** e cole:
+
+- A chave da **Groq** (pega em console.groq.com)
+- A chave da **SearchApi.io** (a que você já tem)
+
+Toque em **Salvar no servidor**. As chaves ficam guardadas só no banco de
+dados do servidor, neste celular — nunca num arquivo de texto, nunca no
+Git.
+
+## Parear o WhatsApp (pelo app, sem comando nenhum)
+
+Ainda em **Config**, toque em **Parear WhatsApp** e depois em **Gerar
+código**. Vai aparecer um código grande na tela. No **WhatsApp Business**:
+**Configurações > Aparelhos conectados > Conectar um aparelho > Conectar
+com número de telefone** — digite esse código.
+
+A sessão fica salva em disco — não precisa parear de novo toda vez que o
+servidor reiniciar, só se a sessão cair de verdade (a tela mostra o
+status: Conectado / Desconectado / Aguardando pareamento).
 
 ## Rodando 24h no Termux
 
@@ -148,33 +155,38 @@ alguma sem querer):
 npm test
 ```
 
-33 testes automatizados cobrindo: cálculo Price (mesma fórmula do app),
+39 testes automatizados cobrindo: cálculo Price (mesma fórmula do app),
 regras obrigatórias presentes no prompt, proteções anti-bloqueio
-(limite de envio, link encurtado), e o pipeline inteiro de atendimento
+(limite de envio, link encurtado), o pipeline inteiro de atendimento
 com a Groq mockada (SAIR/PARAR, fora do horário, IA pausada, conversa
-assumida pela Simone, fluxo normal) — nenhum teste chama a Groq, o
-WhatsApp ou a SearchApi de verdade.
+assumida pela Simone, fluxo normal), e a geração/persistência automática
+do token da API — nenhum teste chama a Groq, o WhatsApp ou a SearchApi
+de verdade, nem escreve no `.env` de verdade.
 
 ## O que foi testado neste ambiente de build (transparência)
 
 - ✅ Compila sem erros (`npm run build`).
-- ✅ 33 testes automatizados passando.
+- ✅ 39 testes automatizados passando.
 - ❌ **Não testado contra a Groq, a SearchApi.io nem o WhatsApp de
   verdade** — este ambiente de build não tem as chaves reais nem um
   celular com WhatsApp Business pra parear. Isso só pode ser validado no
-  seu Termux, com as chaves de verdade no `.env`.
+  seu Termux.
 
-**Antes de considerar a Fase 2 pronta, preciso que você teste:**
+**Antes de considerar a Fase 2 pronta, preciso que você teste, tudo pelo
+app (nenhum comando além da instalação inicial):**
 
-- [ ] Rodar `npm start` no Termux sem erro
-- [ ] Parear pelo código de 8 dígitos
+- [ ] Rodar os comandos de instalação no Termux sem erro
+- [ ] Copiar o token que apareceu no Termux e colar em Config no app
+- [ ] Config > Chaves de IA: colar as duas chaves e salvar sem erro
+- [ ] Config > Parear WhatsApp: gerar o código e parear de verdade
 - [ ] Mandar "oi" de outro número pro WhatsApp Business e receber resposta
-      da IA
+      da IA (aparece também na aba Conversas do app)
 - [ ] Pedir uma simulação de empréstimo e conferir se os 4 números batem
 - [ ] Mandar "SAIR" e confirmar que parou de responder depois
 - [ ] Testar fora do horário configurado (muda `HORARIO_INICIO`/`HORARIO_FIM`
       temporariamente pra testar)
-- [ ] `POST /api/ia/pausar` e confirmar que a IA realmente para
+- [ ] Botão **Pausar IA** na aba Conversas e confirmar que a IA realmente para
+- [ ] Modo copiloto: compartilhar um texto de outro app pro ENVIO CRED
 
 ## Próximo passo (Fase 3)
 

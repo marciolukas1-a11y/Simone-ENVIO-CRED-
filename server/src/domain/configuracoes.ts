@@ -7,6 +7,8 @@ export interface Configuracoes {
   horario_inicio: string;
   horario_fim: string;
   ia_pausada: number;
+  groq_api_key: string;
+  research_api_key: string;
 }
 
 export function obterConfiguracoes(): Configuracoes {
@@ -21,7 +23,9 @@ export function salvarConfiguracoes(dados: Partial<Omit<Configuracoes, 'id'>>): 
          taxa_padrao = COALESCE(?, taxa_padrao),
          horario_inicio = COALESCE(?, horario_inicio),
          horario_fim = COALESCE(?, horario_fim),
-         ia_pausada = COALESCE(?, ia_pausada)
+         ia_pausada = COALESCE(?, ia_pausada),
+         groq_api_key = COALESCE(?, groq_api_key),
+         research_api_key = COALESCE(?, research_api_key)
        WHERE id = 1`
     )
     .run(
@@ -29,7 +33,9 @@ export function salvarConfiguracoes(dados: Partial<Omit<Configuracoes, 'id'>>): 
       dados.taxa_padrao ?? null,
       dados.horario_inicio ?? null,
       dados.horario_fim ?? null,
-      dados.ia_pausada ?? null
+      dados.ia_pausada ?? null,
+      dados.groq_api_key ?? null,
+      dados.research_api_key ?? null
     );
   return obterConfiguracoes();
 }

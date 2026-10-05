@@ -13,6 +13,7 @@ import {
 } from '../domain/conversas.js';
 import { obterConfiguracoes, salvarConfiguracoes, pausarIa, retomarIa } from '../domain/configuracoes.js';
 import { conversarComGroq } from '../ai/groqClient.js';
+import { salvarChavesDeIa, statusChaves } from '../segredos.js';
 import { logger } from '../logging/logger.js';
 
 export function registrarRotas(app: FastifyInstance, gateway: WhatsAppGateway): void {
@@ -64,9 +65,28 @@ export function registrarRotas(app: FastifyInstance, gateway: WhatsAppGateway): 
   });
 
   // --- Configurações ---
-  app.get('/api/configuracoes', async () => obterConfiguracoes());
+  // Nunca devolve as chaves de IA de volta pro app -- só se estão
+  // configuradas ou não (statusChaves), pra não ficar reexibindo segredo.
+  app.get('/api/configuracoes', async () => {
+    const cfg = obterConfiguracoes();
+    const { groq_api_key, research_api_key, ...resto } = cfg;
+    return { ...resto, chaves: statusChaves() };
+  });
 
-  app.put('/api/configuracoes', async (req) => salvarConfiguracoes(req.body as any));
+  app.put('/api/configuracoes', async (req) => {
+    const { groq_api_key, research_api_key, ...resto } = req.body as any;
+    return salvarConfiguracoes(resto);
+  });
+
+  // --- Chaves de IA: configuradas pela tela "Chaves de IA" do app, nunca
+  // digitadas em arquivo -- ver src/segredos.ts. ---
+  app.post('/api/chaves', async (req) => {
+    const { groq_api_key, research_api_key } = req.body as { groq_api_key?: string; research_api_key?: string };
+    salvarChavesDeIa(groq_api_key, research_api_key);
+    return { ok: true, chaves: statusChaves() };
+  });
+
+  app.get('/api/chaves/status', async () => statusChaves());
 
   app.post('/api/ia/pausar', async () => {
     pausarIa();

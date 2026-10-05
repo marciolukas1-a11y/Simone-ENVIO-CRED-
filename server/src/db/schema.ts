@@ -66,7 +66,11 @@ CREATE TABLE IF NOT EXISTS configuracoes (
   taxa_padrao REAL NOT NULL DEFAULT 5,
   horario_inicio TEXT NOT NULL DEFAULT '08:00',
   horario_fim TEXT NOT NULL DEFAULT '20:00',
-  ia_pausada INTEGER NOT NULL DEFAULT 0
+  ia_pausada INTEGER NOT NULL DEFAULT 0,
+  -- Chaves de IA configuradas pela tela "Chaves de IA" do app (nunca
+  -- digitadas em arquivo -- ver src/segredos.ts).
+  groq_api_key TEXT NOT NULL DEFAULT '',
+  research_api_key TEXT NOT NULL DEFAULT ''
 );
 INSERT OR IGNORE INTO configuracoes (id) VALUES (1);
 `;

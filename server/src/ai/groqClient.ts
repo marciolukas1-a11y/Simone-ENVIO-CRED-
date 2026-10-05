@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { obterChaveGroq } from '../segredos.js';
 import { montarPromptSistema } from './systemPrompt.js';
 import { DEFINICOES_FUNCOES, executarFuncao, type ContextoExecucao } from './functions.js';
 import { logger } from '../logging/logger.js';
@@ -40,11 +41,16 @@ export async function conversarComGroq(
 
   const ctx: ContextoExecucao = { telefone, onTransferirParaHumano };
 
+  const chaveGroq = obterChaveGroq();
+  if (!chaveGroq) {
+    return 'Ainda não consigo pensar direito porque a chave da IA não foi configurada. A Simone já está resolvendo isso -- tenta de novo daqui a pouco.';
+  }
+
   for (let rodada = 0; rodada < 6; rodada++) {
     const resposta = await fetch(ENDPOINT, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${config.groq.apiKey}`,
+        Authorization: `Bearer ${chaveGroq}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

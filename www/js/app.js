@@ -244,6 +244,10 @@ function configSheet(){
    '<label class="f">Endereço do servidor (motor de atendimento)<input name="servidor_url" type="url" placeholder="http://192.168.0.10:3000" value="'+esc(SERVIDOR_URL)+'"></label>'+
    '<label class="f">Token da API do servidor (APP_API_TOKEN)<input name="app_api_token" type="text" autocomplete="off" value="'+esc(APP_API_TOKEN)+'"></label>'+
    '<p class="note" style="margin:0">Endereço e token ligam este app ao motor de atendimento por IA no WhatsApp (aba Conversas e modo copiloto). Pode deixar em branco até a Fase 2 estar rodando no Termux.</p>'+
+   '<div class="btns">'+
+   '<button class="btn" type="button" data-act="chavesIaSheet">Chaves de IA</button>'+
+   '<button class="btn" type="button" data-act="parearWhatsAppSheet">Parear WhatsApp</button>'+
+   '</div>'+
    '<div class="btns"><button class="btn primary" type="submit">Salvar</button><button class="btn" type="button" data-act="close">Cancelar</button></div>',
    async function(fd){
      ATENDENTE=fd.get('atendente').trim()||'Simone';
@@ -255,6 +259,77 @@ function configSheet(){
      }catch(e){storageOk=false;console.error('Falha ao salvar configurações',e)}
      form.className='';closeSheet();render(true);
    });
+}
+
+/* ---------- Chaves de IA (Groq, SearchApi) -- configuradas aqui, nunca em arquivo ---------- */
+function chavesIaSheet(){
+  form.className='';
+  if(!SERVIDOR_URL){
+    openSheet('<h3>Chaves de IA</h3><p class="note" style="margin:0">Configure primeiro o endereço do servidor (campo acima) e salve, depois volte aqui.</p>'+
+     '<div class="btns"><button class="btn" type="button" data-act="close">Fechar</button></div>',function(){});
+    return;
+  }
+  openSheet('<h3>Chaves de IA</h3>'+
+   '<p class="note" style="margin:0">Cole aqui as chaves -- elas vão direto pro servidor, nunca ficam salvas neste celular nem em nenhum arquivo de texto.</p>'+
+   '<label class="f">Chave da Groq<input name="groq_api_key" type="text" autocomplete="off" placeholder="gsk_..."></label>'+
+   '<label class="f">Chave da SearchApi.io<input name="research_api_key" type="text" autocomplete="off"></label>'+
+   '<div class="btns"><button class="btn primary" type="submit">Salvar no servidor</button><button class="btn" type="button" data-act="close">Cancelar</button></div>'+
+   '<p class="note" id="chaves_msg" style="margin:0">Carregando status...</p>',
+   async function(fd){
+     var m=document.getElementById('chaves_msg');
+     var groq=fd.get('groq_api_key').trim(), research=fd.get('research_api_key').trim();
+     if(!groq&&!research){closeSheet();return}
+     try{
+       await window.EnvioCredApi.salvarChavesDeIa(SERVIDOR_URL,APP_API_TOKEN,groq||undefined,research||undefined);
+       closeSheet();
+     }catch(e){if(m)m.textContent='Não consegui salvar: '+e.message}
+   });
+  window.EnvioCredApi.statusChavesDeIa(SERVIDOR_URL,APP_API_TOKEN).then(function(s){
+    var m=document.getElementById('chaves_msg');
+    if(!m)return;
+    m.textContent='Groq: '+(s.groqConfigurada?'configurada ✓':'ainda não configurada')+' · SearchApi: '+(s.researchConfigurada?'configurada ✓':'ainda não configurada');
+  }).catch(function(e){
+    var m=document.getElementById('chaves_msg');
+    if(m)m.textContent='Não consegui falar com o servidor agora: '+e.message;
+  });
+}
+
+/* ---------- Parear WhatsApp (código de 8 dígitos) ---------- */
+function parearWhatsAppSheet(){
+  form.className='';
+  if(!SERVIDOR_URL){
+    openSheet('<h3>Parear WhatsApp</h3><p class="note" style="margin:0">Configure primeiro o endereço do servidor (campo acima) e salve, depois volte aqui.</p>'+
+     '<div class="btns"><button class="btn" type="button" data-act="close">Fechar</button></div>',function(){});
+    return;
+  }
+  openSheet('<h3>Parear WhatsApp</h3>'+
+   '<p class="note" id="parear_msg" style="margin:0">Consultando status...</p>'+
+   '<div id="parear_resultado"></div>'+
+   '<div class="btns"><button class="btn primary" type="button" data-act="gerarCodigoPareamento">Gerar código</button><button class="btn" type="button" data-act="close">Fechar</button></div>',
+   function(){});
+  atualizarStatusWhatsApp();
+}
+async function atualizarStatusWhatsApp(){
+  var m=document.getElementById('parear_msg');
+  if(!m)return;
+  try{
+    var s=await window.EnvioCredApi.statusWhatsApp(SERVIDOR_URL,APP_API_TOKEN);
+    var textos={conectado:'Conectado ✓',pareando:'Aguardando pareamento -- toque em "Gerar código"',desconectado:'Desconectado'};
+    m.textContent='Status: '+(textos[s.status]||s.status);
+  }catch(e){m.textContent='Não consegui falar com o servidor: '+e.message}
+}
+async function gerarCodigoPareamento(){
+  var r=document.getElementById('parear_resultado');
+  if(!r)return;
+  r.innerHTML='<p class="note">Gerando código...</p>';
+  try{
+    var resp=await window.EnvioCredApi.parearWhatsApp(SERVIDOR_URL,APP_API_TOKEN);
+    r.innerHTML='<div class="result"><span style="font-size:13px;opacity:.9">Código de pareamento</span>'+
+     '<span class="big" style="font-size:26px">'+esc(resp.codigo)+'</span></div>'+
+     '<p class="note" style="margin-top:8px">No celular: WhatsApp Business &gt; Configurações &gt; Aparelhos conectados &gt; Conectar um aparelho &gt; Conectar com número de telefone. Digite esse código.</p>';
+  }catch(e){
+    r.innerHTML='<p class="note">Não consegui gerar o código: '+esc(e.message)+'</p>';
+  }
 }
 
 /* ---------- Backup ---------- */
@@ -437,6 +512,9 @@ document.addEventListener('click',function(e){
   }
   else if(act==='responderConversa'){responderConversaSheet(t.getAttribute('data-tel'))}
   else if(act==='alternarPausaIa'){alternarPausaIa()}
+  else if(act==='chavesIaSheet'){chavesIaSheet()}
+  else if(act==='parearWhatsAppSheet'){parearWhatsAppSheet()}
+  else if(act==='gerarCodigoPareamento'){gerarCodigoPareamento()}
   else if(act==='copiarSugestaoCopiloto'){
     var ta=document.getElementById('copiloto_sugestao');
     if(ta)copyText(ta.value,function(){},function(){});

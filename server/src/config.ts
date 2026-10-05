@@ -1,19 +1,12 @@
 import 'dotenv/config';
 
 /**
- * Toda configuração sensível vem de variáveis de ambiente (.env) -- nenhuma
- * chave de API fica no código, no app ou no Git. Ver .env.example.
+ * Configuração do servidor. A maior parte é opcional com um padrão
+ * sensato -- de propósito, pra dar pra rodar sem editar nenhum arquivo.
+ * Chaves de IA (Groq/SearchApi) não ficam aqui: são configuráveis pelo
+ * próprio app (ver src/segredos.ts) porque editar um .env num celular,
+ * sem computador, é genuinamente difícil.
  */
-function obrigatoria(nome: string): string {
-  const valor = process.env[nome];
-  if (!valor || valor.trim() === '') {
-    throw new Error(
-      `Variável de ambiente obrigatória "${nome}" não configurada. Copie .env.example para .env e preencha.`
-    );
-  }
-  return valor;
-}
-
 function opcional(nome: string, padrao: string): string {
   const valor = process.env[nome];
   return valor && valor.trim() !== '' ? valor : padrao;
@@ -21,19 +14,14 @@ function opcional(nome: string, padrao: string): string {
 
 export const config = {
   groq: {
-    apiKey: obrigatoria('GROQ_API_KEY'),
     model: opcional('GROQ_MODEL', 'openai/gpt-oss-120b'),
   },
   research: {
     provider: opcional('RESEARCH_PROVIDER', 'searchapi'),
-    apiKey: process.env.RESEARCH_API_KEY ?? '',
   },
   whatsapp: {
     sessionDir: opcional('WHATSAPP_SESSION_DIR', './dados/sessao-whatsapp'),
-    phoneNumber: obrigatoria('WHATSAPP_PHONE_NUMBER'),
-  },
-  app: {
-    apiToken: obrigatoria('APP_API_TOKEN'),
+    phoneNumber: opcional('WHATSAPP_PHONE_NUMBER', '5583999628152'),
   },
   database: {
     path: opcional('DATABASE_PATH', './dados/enviocred.sqlite'),
