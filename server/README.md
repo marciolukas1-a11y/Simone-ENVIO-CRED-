@@ -73,9 +73,13 @@ Ainda em **Config**, toque em **Chaves de IA** e cole:
 - A chave da **Groq** (pega em console.groq.com)
 - A chave da **SearchApi.io** (a que você já tem)
 
-Toque em **Salvar no servidor**. As chaves ficam guardadas só no banco de
-dados do servidor, neste celular — nunca num arquivo de texto, nunca no
-Git.
+Toque em **Salvar no cofre**. As chaves ficam guardadas num **cofre
+criptografado dentro do próprio app** (AES256, chave protegida pelo
+Android Keystore do aparelho) e também são enviadas ao servidor, que é
+quem de fato chama a Groq/SearchApi. Nunca ficam em arquivo de texto,
+nunca no Git. Se o servidor não estiver rodando no momento de salvar, não
+tem problema: a chave já fica guardada com segurança no celular, e o app
+tenta sincronizar sozinho com o servidor na próxima vez que abrir.
 
 ## Parear o WhatsApp (pelo app, sem comando nenhum)
 

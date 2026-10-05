@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WhatsAppOpenerPlugin.class);
         registerPlugin(ShareIntentPlugin.class);
+        registerPlugin(SecureVaultPlugin.class);
         super.onCreate(savedInstanceState);
     }
 

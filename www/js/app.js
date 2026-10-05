@@ -261,37 +261,66 @@ function configSheet(){
    });
 }
 
-/* ---------- Chaves de IA (Groq, SearchApi) -- configuradas aqui, nunca em arquivo ---------- */
+/* ---------- Chaves de IA (Groq, SearchApi) ----------
+ * Ficam guardadas num cofre criptografado dentro do próprio celular
+ * (Android Keystore, via SecureVaultPlugin) -- isso é o que garante que
+ * elas não ficam em texto puro em nenhum arquivo. Depois de guardadas
+ * aqui, o app também envia pro servidor (pra IA poder usá-las de fato);
+ * se o servidor não estiver rodando nesse momento, fica tudo bem: a chave
+ * já está salva com segurança neste celular e o app tenta sincronizar de
+ * novo sozinho na próxima vez que abrir o app ou esta tela.
+ */
 function chavesIaSheet(){
   form.className='';
-  if(!SERVIDOR_URL){
-    openSheet('<h3>Chaves de IA</h3><p class="note" style="margin:0">Configure primeiro o endereço do servidor (campo acima) e salve, depois volte aqui.</p>'+
-     '<div class="btns"><button class="btn" type="button" data-act="close">Fechar</button></div>',function(){});
-    return;
-  }
   openSheet('<h3>Chaves de IA</h3>'+
-   '<p class="note" style="margin:0">Cole aqui as chaves -- elas vão direto pro servidor, nunca ficam salvas neste celular nem em nenhum arquivo de texto.</p>'+
+   '<p class="note" style="margin:0">Cole aqui as chaves. Elas ficam guardadas num cofre criptografado deste celular (protegido pelo Android) e também são enviadas ao servidor, que é quem realmente conversa com a Groq/SearchApi.</p>'+
    '<label class="f">Chave da Groq<input name="groq_api_key" type="text" autocomplete="off" placeholder="gsk_..."></label>'+
    '<label class="f">Chave da SearchApi.io<input name="research_api_key" type="text" autocomplete="off"></label>'+
-   '<div class="btns"><button class="btn primary" type="submit">Salvar no servidor</button><button class="btn" type="button" data-act="close">Cancelar</button></div>'+
-   '<p class="note" id="chaves_msg" style="margin:0">Carregando status...</p>',
+   '<div class="btns"><button class="btn primary" type="submit">Salvar no cofre</button><button class="btn" type="button" data-act="close">Cancelar</button></div>'+
+   '<p class="note" id="chaves_msg" style="margin:0">Carregando...</p>',
    async function(fd){
      var m=document.getElementById('chaves_msg');
      var groq=fd.get('groq_api_key').trim(), research=fd.get('research_api_key').trim();
-     if(!groq&&!research){closeSheet();return}
      try{
-       await window.EnvioCredApi.salvarChavesDeIa(SERVIDOR_URL,APP_API_TOKEN,groq||undefined,research||undefined);
-       closeSheet();
-     }catch(e){if(m)m.textContent='Não consegui salvar: '+e.message}
+       if(groq)await window.EnvioCredCofre.salvar('groq_api_key',groq);
+       if(research)await window.EnvioCredCofre.salvar('research_api_key',research);
+     }catch(e){
+       if(m)m.textContent='Não consegui guardar no cofre deste celular: '+e.message;
+       return;
+     }
+     closeSheet();
+     sincronizarChavesComServidor();
    });
-  window.EnvioCredApi.statusChavesDeIa(SERVIDOR_URL,APP_API_TOKEN).then(function(s){
-    var m=document.getElementById('chaves_msg');
-    if(!m)return;
-    m.textContent='Groq: '+(s.groqConfigurada?'configurada ✓':'ainda não configurada')+' · SearchApi: '+(s.researchConfigurada?'configurada ✓':'ainda não configurada');
-  }).catch(function(e){
-    var m=document.getElementById('chaves_msg');
-    if(m)m.textContent='Não consegui falar com o servidor agora: '+e.message;
-  });
+  carregarTelaDeChaves();
+}
+async function carregarTelaDeChaves(){
+  var m=document.getElementById('chaves_msg');
+  try{
+    var groqSalva=await window.EnvioCredCofre.obter('groq_api_key');
+    var researchSalva=await window.EnvioCredCofre.obter('research_api_key');
+    var campoGroq=form.querySelector('[name=groq_api_key]');
+    var campoResearch=form.querySelector('[name=research_api_key]');
+    if(campoGroq&&groqSalva)campoGroq.value=groqSalva;
+    if(campoResearch&&researchSalva)campoResearch.value=researchSalva;
+    if(m)m.textContent='Neste celular -- Groq: '+(groqSalva?'guardada ✓':'ainda não guardada')+' · SearchApi: '+(researchSalva?'guardada ✓':'ainda não guardada');
+  }catch(e){
+    if(m)m.textContent='Não consegui ler o cofre: '+e.message;
+  }
+}
+// Tenta mandar pro servidor as chaves que já estão no cofre deste celular.
+// É "melhor esforço": se o servidor não estiver acessível agora, não tem
+// problema -- a chave continua guardada com segurança aqui e a sincronização
+// é tentada de novo sozinha no próximo boot do app.
+async function sincronizarChavesComServidor(){
+  if(!SERVIDOR_URL)return;
+  try{
+    var groq=await window.EnvioCredCofre.obter('groq_api_key');
+    var research=await window.EnvioCredCofre.obter('research_api_key');
+    if(!groq&&!research)return;
+    await window.EnvioCredApi.salvarChavesDeIa(SERVIDOR_URL,APP_API_TOKEN,groq||undefined,research||undefined);
+  }catch(e){
+    console.error('Não consegui sincronizar as chaves com o servidor agora (tentará de novo mais tarde)',e);
+  }
 }
 
 /* ---------- Parear WhatsApp (código de 8 dígitos) ---------- */
@@ -575,6 +604,7 @@ async function boot(){
     S=seed();
   }
   render();
+  sincronizarChavesComServidor();
 }
 boot();
 })();
