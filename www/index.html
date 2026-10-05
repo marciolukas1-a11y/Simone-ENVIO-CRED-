@@ -94,11 +94,23 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .result .big{font-family:var(--f-num);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
 .result .lines{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:14px;opacity:.95;margin-top:6px}
 .note{font-size:12px;color:var(--muted)}
-#sheet{position:fixed;top:0;right:0;bottom:0;left:0;z-index:999;display:flex;align-items:flex-end;justify-content:center}
-.scrim{position:absolute;top:0;right:0;bottom:0;left:0;background-color:#0A0F0E;background:rgba(5,15,14,.55)}
-.panel{position:relative;width:100%;max-width:560px;max-height:92%;overflow-y:auto;background-color:#FFFFFF;background:var(--surface);border-radius:14px 14px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+#sheet{position:fixed;top:0;right:0;bottom:0;left:0;z-index:999;display:flex;align-items:flex-end;justify-content:center;opacity:1!important}
+.scrim{position:absolute;top:0;right:0;bottom:0;left:0;background:#0A0F0E!important;opacity:1!important}
+.panel{position:relative;width:100%;max-width:560px;max-height:92%;overflow-y:auto;border-radius:14px 14px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;opacity:1!important}
 .panel h3{margin:0;font-family:var(--f-display);font-size:19px}
 .panel textarea.mono{font-family:var(--f-num);font-size:12px;min-height:120px}
+/* Painel sempre em cor clara sólida, com cores fixas (sem var() nem
+   rgba) -- proteção extra contra o celular do cliente não aplicar
+   direito as variáveis de tema/transparência. */
+.panel{background:#FFFFFF!important;color:#10201F!important}
+.panel h3{color:#10201F!important}
+.panel .note{color:#586866!important}
+.panel label.f{color:#586866!important}
+.panel .f input,.panel .f select,.panel .f textarea{background:#F1F4F3!important;color:#10201F!important;border:1px solid #DAE2E0!important}
+.panel .btn{background:#FFFFFF!important;color:#10201F!important;border:1px solid #DAE2E0!important}
+.panel .btn.primary{background:#0E5A55!important;border-color:#0E5A55!important;color:#FFFFFF!important}
+.panel .btn.danger{color:#B3261E!important}
+.panel .linkbtn{color:#0E5A55!important}
 </style>
 
 <div class="app">
