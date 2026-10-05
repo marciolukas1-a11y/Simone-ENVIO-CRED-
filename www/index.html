@@ -94,9 +94,9 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .result .big{font-family:var(--f-num);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
 .result .lines{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:14px;opacity:.95;margin-top:6px}
 .note{font-size:12px;color:var(--muted)}
-#sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
-.scrim{position:absolute;inset:0;background:rgba(5,15,14,.55)}
-.panel{position:relative;width:100%;max-width:560px;max-height:92%;overflow-y:auto;background:var(--surface);border-radius:14px 14px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+#sheet{position:fixed;top:0;right:0;bottom:0;left:0;z-index:999;display:flex;align-items:flex-end;justify-content:center}
+.scrim{position:absolute;top:0;right:0;bottom:0;left:0;background-color:#0A0F0E;background:rgba(5,15,14,.55)}
+.panel{position:relative;width:100%;max-width:560px;max-height:92%;overflow-y:auto;background-color:#FFFFFF;background:var(--surface);border-radius:14px 14px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
 .panel h3{margin:0;font-family:var(--f-display);font-size:19px}
 .panel textarea.mono{font-family:var(--f-num);font-size:12px;min-height:120px}
 @media (prefers-reduced-motion:no-preference){.panel{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
