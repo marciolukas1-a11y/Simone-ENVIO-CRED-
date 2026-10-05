@@ -28,6 +28,23 @@ public class SecureVaultPlugin extends Plugin {
     private static final String ARQUIVO = "enviocred_cofre";
 
     private SharedPreferences getCofre() throws Exception {
+        try {
+            return abrirCofre();
+        } catch (Exception e) {
+            // A chave mestra vive no Android Keystore (presa ao hardware),
+            // mas o arquivo criptografado é um arquivo comum -- se algo
+            // (restauração do Google, troca de aparelho) copiar o arquivo
+            // sem a chave do Keystore junto, a leitura falha pra sempre
+            // nesse estado. Em vez de deixar o cofre quebrado, apaga o
+            // arquivo e recria vazio -- perde o que tinha salvo, mas o
+            // cliente consegue colar as chaves de novo em vez de ficar sem
+            // conseguir usar o cofre.
+            getContext().deleteSharedPreferences(ARQUIVO);
+            return abrirCofre();
+        }
+    }
+
+    private SharedPreferences abrirCofre() throws Exception {
         MasterKey chaveMestra = new MasterKey.Builder(getContext())
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .build();
