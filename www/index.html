@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E5A55">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ENVIO CRED">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px system-ui,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>ENVIO CRED</title>
+</head>
+<body>
+<!-- Fontes embutidas localmente -- sem depender de internet (ver www/fonts/fonts.css) -->
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+/* Layout: app de uma coluna para celular. Cabeçalho fixo, conteúdo rolável, barra de abas embaixo. */
+:root{
+  --bg:#F1F4F3; --surface:#FFFFFF; --fg:#10201F; --muted:#586866; --line:#DAE2E0;
+  --accent:#0E5A55; --accent-fg:#FFFFFF; --accent-soft:#DCEEEB;
+  --s-novo:#4B5F73; --s-sim:#1F5FBF; --s-prop:#A15C00; --s-ok:#1A7A3C; --s-lost:#8A3A3A;
+  --danger:#B3261E;
+  --f-display:'Familjen Grotesk',system-ui,sans-serif;
+  --f-body:'Public Sans',system-ui,sans-serif;
+  --f-num:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1514; --surface:#162120; --fg:#E6EFED; --muted:#93A5A2; --line:#263433;
+    --accent:#4FC3B5; --accent-fg:#04201D; --accent-soft:#17312E;
+    --s-novo:#9DB2C7; --s-sim:#7DAEF2; --s-prop:#E5A94D; --s-ok:#5CC987; --s-lost:#D98C8C;
+    --danger:#F2867F; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1514; --surface:#162120; --fg:#E6EFED; --muted:#93A5A2; --line:#263433;
+  --accent:#4FC3B5; --accent-fg:#04201D; --accent-soft:#17312E;
+  --s-novo:#9DB2C7; --s-sim:#7DAEF2; --s-prop:#E5A94D; --s-ok:#5CC987; --s-lost:#D98C8C;
+  --danger:#F2867F; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+.app{display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto}
+header.top{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px 10px}
+.brand{font-family:var(--f-display);font-weight:700;font-size:21px;letter-spacing:.02em}
+.brand small{display:block;font-family:var(--f-body);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hdrbtns{display:flex;gap:14px;align-items:center}
+.linkbtn{background:none;border:0;color:var(--accent);font-weight:600;padding:8px 0;cursor:pointer}
+main{flex:1;min-height:0;overflow-y:auto;padding:4px 16px 24px}
+h2{font-family:var(--f-display);font-size:19px;margin:6px 0 12px;font-weight:600;text-wrap:balance}
+.tabs{flex:none;display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs button{background:none;border:0;padding:13px 4px 12px;font-weight:600;font-size:13px;color:var(--muted);cursor:pointer;position:relative}
+.tabs button[aria-selected="true"]{color:var(--accent)}
+.tabs button[aria-selected="true"]::before{content:"";position:absolute;left:22%;right:22%;top:0;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.list{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.row>*{min-width:0}
+.name{font-weight:600;overflow-wrap:anywhere}
+.sub{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-weight:500}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);white-space:nowrap}
+.pill.novo{--c:var(--s-novo)}.pill.simulacao{--c:var(--s-sim)}.pill.proposta{--c:var(--s-prop)}.pill.contratado{--c:var(--s-ok)}.pill.perdido{--c:var(--s-lost)}
+.pill.disponivel{--c:var(--s-ok)}.pill.reservado{--c:var(--s-prop)}.pill.vendido{--c:var(--s-novo)}
+.tag{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px dashed var(--line);border-radius:4px;padding:1px 6px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 13px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;color:var(--fg)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}
+.btn.wide{width:100%}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;margin-bottom:2px}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 13px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.search{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:8px;background:var(--surface);margin-bottom:10px}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:var(--muted)}
+.f input,.f select,.f textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:11px 12px;font-size:16px;font-weight:400;color:var(--fg);width:100%}
+.f textarea{min-height:78px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fab{position:sticky;bottom:0;padding-top:12px}
+.empty{padding:26px 8px;text-align:center;color:var(--muted)}
+.banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--accent-soft);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px}
+.stage{display:flex;flex-direction:column;gap:6px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c);border-radius:4px}
+.result{background:var(--accent);color:var(--accent-fg);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:4px}
+.result .big{font-family:var(--f-num);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
+.result .lines{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:14px;opacity:.95;margin-top:6px}
+.note{font-size:12px;color:var(--muted)}
+#sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.scrim{position:absolute;inset:0;background:rgba(5,15,14,.55)}
+.panel{position:relative;width:100%;max-width:560px;max-height:92%;overflow-y:auto;background:var(--surface);border-radius:14px 14px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.panel h3{margin:0;font-family:var(--f-display);font-size:19px}
+.panel textarea.mono{font-family:var(--f-num);font-size:12px;min-height:120px}
+@media (prefers-reduced-motion:no-preference){.panel{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">ENVIO CRED<small>Clientes, empréstimos e vendas</small></div>
+    <div class="hdrbtns">
+      <button class="linkbtn" data-act="config" type="button">Config</button>
+      <button class="linkbtn" data-act="backup" type="button">Backup</button>
+    </div>
+  </header>
+  <main id="main" aria-live="polite"></main>
+  <nav class="tabs" role="tablist" aria-label="Seções">
+    <button role="tab" data-tab="clientes" type="button">Clientes</button>
+    <button role="tab" data-tab="funil" type="button">Funil</button>
+    <button role="tab" data-tab="simulador" type="button">Simulador</button>
+    <button role="tab" data-tab="objetos" type="button">Objetos</button>
+  </nav>
+</div>
+<div id="sheet" hidden>
+  <div class="scrim" data-act="close"></div>
+  <form class="panel" id="sheetForm" autocomplete="off"></form>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/whatsapp.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

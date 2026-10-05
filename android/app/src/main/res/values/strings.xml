@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ENVIO CRED</string>
+    <string name="title_activity_main">ENVIO CRED</string>
+    <string name="package_name">com.enviocred.crm</string>
+    <string name="custom_url_scheme">com.enviocred.crm</string>
+</resources>

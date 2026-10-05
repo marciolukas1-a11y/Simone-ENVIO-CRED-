@@ -1,0 +1,8 @@
+{
+  "appId": "com.enviocred.crm",
+  "appName": "ENVIO CRED",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  }
+}

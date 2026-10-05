@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Identidade visual ENVIO CRED: tema escuro, mesmos tokens do app web (bg/accent escuros). -->
+<resources>
+    <color name="colorPrimary">#4FC3B5</color>
+    <color name="colorPrimaryDark">#0D1514</color>
+    <color name="colorAccent">#4FC3B5</color>
+    <color name="statusBarBackground">#0D1514</color>
+</resources>

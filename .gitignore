@@ -1,0 +1,23 @@
+node_modules/
+www/node_modules/
+
+# Build do Android
+android/app/build/
+android/.gradle/
+android/build/
+android/local.properties
+android/captures/
+android/app/release/
+
+# Keystore de assinatura release -- NUNCA entra no repositório
+*.keystore
+*.jks
+keystore.properties
+
+# Variáveis de ambiente (fase 2)
+.env
+.env.local
+
+# Sistema
+.DS_Store
+*.log

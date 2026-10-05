@@ -1,0 +1,22 @@
+{
+  "name": "envio-cred-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ENVIO CRED - app Android (CRM) + motor de atendimento por IA no WhatsApp",
+  "scripts": {
+    "sync": "cap sync android",
+    "open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor-community/sqlite": "^8.1.1",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}
