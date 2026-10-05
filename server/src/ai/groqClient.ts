@@ -2,6 +2,7 @@ import { config } from '../config.js';
 import { obterChaveGroq } from '../segredos.js';
 import { montarPromptSistema } from './systemPrompt.js';
 import { DEFINICOES_FUNCOES, executarFuncao, type ContextoExecucao } from './functions.js';
+import { obterConfiguracoes } from '../domain/configuracoes.js';
 import { logger } from '../logging/logger.js';
 import type { Mensagem } from '../domain/conversas.js';
 
@@ -33,8 +34,9 @@ export async function conversarComGroq(
   historico: Mensagem[],
   onTransferirParaHumano: (motivo: string) => void
 ): Promise<string> {
+  const cfg = obterConfiguracoes();
   const mensagens: MensagemChat[] = [
-    { role: 'system', content: montarPromptSistema(atendente) },
+    { role: 'system', content: montarPromptSistema(atendente, cfg.taxa_padrao, cfg.taxa_atraso) },
     ...historicoParaChat(historico),
     { role: 'user', content: mensagemNova },
   ];
@@ -87,4 +89,47 @@ export async function conversarComGroq(
 
   logger.warn({ telefone }, 'Groq: limite de rodadas de função atingido sem resposta final');
   return 'Desculpa, tive um problema pra processar isso agora. Vou te colocar em contato com a Simone.';
+}
+
+/**
+ * Pega a descrição crua que a Simone digitou (pode ter erro de digitação) e
+ * devolve uma versão corrigida e persuasiva, pronta pra IA usar vendendo o
+ * objeto no WhatsApp. Chamada só, sem tools -- é uma reescrita de texto, não
+ * uma conversa.
+ */
+export async function gerarDescricaoDeVenda(descricaoBruta: string): Promise<string> {
+  const chaveGroq = obterChaveGroq();
+  if (!chaveGroq) throw new Error('chave da Groq não configurada');
+
+  const resposta = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${chaveGroq}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: config.groq.model,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Você reescreve descrições de objetos usados à venda. Corrija erros de digitação e reescreva como um texto de venda curto e persuasivo (destaque os benefícios reais, crie senso de oportunidade), em português do Brasil, estilo mensagem de WhatsApp. NUNCA invente características, defeitos, acessórios ou condições que não estejam no texto original -- só reescreva de forma mais atraente o que já foi informado. Responda só com o texto final, sem comentários.',
+        },
+        { role: 'user', content: descricaoBruta },
+      ],
+      temperature: 0.6,
+    }),
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!resposta.ok) {
+    const corpo = await resposta.text();
+    logger.error({ status: resposta.status, corpo }, 'Groq respondeu erro ao gerar descrição de venda');
+    throw new Error(`Groq respondeu ${resposta.status}`);
+  }
+
+  const dados = (await resposta.json()) as any;
+  const texto = dados.choices?.[0]?.message?.content;
+  if (!texto) throw new Error('Groq não devolveu texto');
+  return String(texto).trim();
 }

@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { exigirToken } from './auth.js';
 import type { WhatsAppGateway } from '../whatsapp/WhatsAppGateway.js';
 import { listarClientes, buscarClientePorTelefone, apagarDadosCliente } from '../domain/clientes.js';
-import { listarTodosObjetos, criarObjeto, atualizarObjeto } from '../domain/objetos.js';
+import { listarTodosObjetos, criarObjeto, atualizarObjeto, sincronizarObjetoDoApp } from '../domain/objetos.js';
 import {
   listarConversas,
   assumirConversa,
@@ -12,7 +12,7 @@ import {
   registrarMensagem,
 } from '../domain/conversas.js';
 import { obterConfiguracoes, salvarConfiguracoes, pausarIa, retomarIa } from '../domain/configuracoes.js';
-import { conversarComGroq } from '../ai/groqClient.js';
+import { conversarComGroq, gerarDescricaoDeVenda } from '../ai/groqClient.js';
 import { salvarChavesDeIa, statusChaves } from '../segredos.js';
 import { logger } from '../logging/logger.js';
 
@@ -47,21 +47,48 @@ export function registrarRotas(app: FastifyInstance, gateway: WhatsAppGateway): 
   });
 
   // --- Objetos ---
+  // Catálogo que a IA realmente usa pra vender no WhatsApp (listar_objetos_disponiveis/
+  // buscar_objeto, em ai/functions.ts) -- sincronizado a partir dos objetos
+  // cadastrados na aba Objetos do app (ver app_item_id, que liga os dois).
   app.get('/api/objetos', async () => listarTodosObjetos());
 
   app.post('/api/objetos', async (req) => {
     const body = req.body as any;
-    return criarObjeto({
+    const dados = {
       nome: body.nome,
       preco: Number(body.preco) || 0,
       status: body.status ?? 'disponivel',
       descricao: body.descricao ?? '',
-    });
+      descricao_venda: body.descricao_venda ?? '',
+      foto: body.foto ?? '',
+      app_item_id: body.app_item_id ?? '',
+    };
+    // Com app_item_id, isto é uma sincronização vinda do app (atualiza se já
+    // existir); sem ele, continua funcionando como criação simples de sempre.
+    return dados.app_item_id ? sincronizarObjetoDoApp(dados) : criarObjeto(dados);
   });
 
   app.put('/api/objetos/:id', async (req) => {
     const { id } = req.params as { id: string };
     return atualizarObjeto(Number(id), req.body as any);
+  });
+
+  // Corrige digitação e reescreve a descrição crua do objeto como texto de
+  // venda persuasivo -- não grava nada, só devolve o texto pro app salvar.
+  app.post('/api/objetos/gerar-descricao', async (req, reply) => {
+    const body = req.body as any;
+    const descricao = String(body?.descricao ?? '').trim();
+    if (!descricao) {
+      reply.code(400);
+      return { erro: 'descricao é obrigatória' };
+    }
+    try {
+      const descricaoVenda = await gerarDescricaoDeVenda(descricao);
+      return { descricao_venda: descricaoVenda };
+    } catch (e: any) {
+      reply.code(502);
+      return { erro: e.message ?? 'falha ao gerar descrição' };
+    }
   });
 
   // --- Configurações ---

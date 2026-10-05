@@ -59,7 +59,7 @@
           'CREATE TABLE IF NOT EXISTS settings (' +
           '  id INTEGER PRIMARY KEY CHECK (id = 1),' +
           '  atendente TEXT NOT NULL DEFAULT \'Simone\',' +
-          '  taxa_padrao REAL NOT NULL DEFAULT 5,' +
+          '  taxa_padrao REAL NOT NULL DEFAULT 30,' +
           '  servidor_url TEXT NOT NULL DEFAULT \'\'' +
           ');'
       });
@@ -109,7 +109,7 @@
     await init();
     var rows = await query('SELECT atendente, taxa_padrao, servidor_url, app_api_token FROM settings WHERE id = 1');
     if (rows.length) return rows[0];
-    var defaults = { atendente: 'Simone', taxa_padrao: 5, servidor_url: '', app_api_token: '' };
+    var defaults = { atendente: 'Simone', taxa_padrao: 30, servidor_url: '', app_api_token: '' };
     await saveSettings(defaults);
     return defaults;
   }

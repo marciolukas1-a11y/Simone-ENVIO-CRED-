@@ -159,14 +159,19 @@ export async function executarFuncao(
       case 'listar_objetos_disponiveis': {
         const objetos = listarObjetosDisponiveis();
         return JSON.stringify(
-          objetos.map((o) => ({ nome: o.nome, preco: formatarReais(o.preco), descricao: o.descricao }))
+          objetos.map((o) => ({ nome: o.nome, preco: formatarReais(o.preco), descricao: o.descricao_venda || o.descricao }))
         );
       }
 
       case 'buscar_objeto': {
         const objetos = buscarObjeto(args.texto ?? '');
         return JSON.stringify(
-          objetos.map((o) => ({ nome: o.nome, preco: formatarReais(o.preco), status: o.status, descricao: o.descricao }))
+          objetos.map((o) => ({
+            nome: o.nome,
+            preco: formatarReais(o.preco),
+            status: o.status,
+            descricao: o.descricao_venda || o.descricao,
+          }))
         );
       }
 

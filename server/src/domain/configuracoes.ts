@@ -4,6 +4,7 @@ export interface Configuracoes {
   id: 1;
   atendente: string;
   taxa_padrao: number;
+  taxa_atraso: number;
   horario_inicio: string;
   horario_fim: string;
   ia_pausada: number;
@@ -21,6 +22,7 @@ export function salvarConfiguracoes(dados: Partial<Omit<Configuracoes, 'id'>>): 
       `UPDATE configuracoes SET
          atendente = COALESCE(?, atendente),
          taxa_padrao = COALESCE(?, taxa_padrao),
+         taxa_atraso = COALESCE(?, taxa_atraso),
          horario_inicio = COALESCE(?, horario_inicio),
          horario_fim = COALESCE(?, horario_fim),
          ia_pausada = COALESCE(?, ia_pausada),
@@ -31,6 +33,7 @@ export function salvarConfiguracoes(dados: Partial<Omit<Configuracoes, 'id'>>): 
     .run(
       dados.atendente ?? null,
       dados.taxa_padrao ?? null,
+      dados.taxa_atraso ?? null,
       dados.horario_inicio ?? null,
       dados.horario_fim ?? null,
       dados.ia_pausada ?? null,

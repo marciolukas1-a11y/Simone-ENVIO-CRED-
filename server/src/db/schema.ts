@@ -26,8 +26,19 @@ CREATE TABLE IF NOT EXISTS objetos (
   nome TEXT NOT NULL,
   preco REAL NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'disponivel' CHECK (status IN ('disponivel','reservado','vendido')),
-  descricao TEXT NOT NULL DEFAULT ''
+  descricao TEXT NOT NULL DEFAULT '',
+  -- Descrição de venda gerada pela IA (corrige digitação + técnica de
+  -- persuasão) a partir de 'descricao' -- é o que a IA usa de verdade pra
+  -- responder sobre o objeto no WhatsApp (ver ai/functions.ts).
+  descricao_venda TEXT NOT NULL DEFAULT '',
+  -- Foto em base64 (print colado no app) -- guardada aqui só pra referência/
+  -- futuro envio automático; ainda não é mandada pelo WhatsApp pela IA.
+  foto TEXT NOT NULL DEFAULT '',
+  -- Liga este registro ao item local do app (id gerado no celular), pra dar
+  -- pra sincronizar sem duplicar quando o app salvar de novo.
+  app_item_id TEXT NOT NULL DEFAULT ''
 );
+CREATE INDEX IF NOT EXISTS idx_objetos_app_item_id ON objetos(app_item_id);
 
 -- Uma linha por conversa (telefone do cliente). Controla quem está
 -- respondendo agora (IA ou a Simone) -- é o que o botão "Assumir conversa"
@@ -63,7 +74,9 @@ CREATE TABLE IF NOT EXISTS consentimentos (
 CREATE TABLE IF NOT EXISTS configuracoes (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   atendente TEXT NOT NULL DEFAULT 'Simone',
-  taxa_padrao REAL NOT NULL DEFAULT 5,
+  taxa_padrao REAL NOT NULL DEFAULT 30,
+  -- Juros de mora: cobrado A MAIS, ao mês, sobre parcelas em atraso.
+  taxa_atraso REAL NOT NULL DEFAULT 1,
   horario_inicio TEXT NOT NULL DEFAULT '08:00',
   horario_fim TEXT NOT NULL DEFAULT '20:00',
   ia_pausada INTEGER NOT NULL DEFAULT 0,

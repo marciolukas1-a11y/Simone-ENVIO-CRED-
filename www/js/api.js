@@ -72,6 +72,26 @@
     statusChavesDeIa: function (servidorUrl, token) {
       return chamar(servidorUrl, token, '/api/chaves/status');
     },
+    salvarObjeto: function (servidorUrl, token, objeto) {
+      return chamar(servidorUrl, token, '/api/objetos', {
+        method: 'POST',
+        body: {
+          app_item_id: objeto.id,
+          nome: objeto.nome,
+          preco: objeto.preco,
+          status: objeto.status,
+          descricao: objeto.desc || '',
+          descricao_venda: objeto.descVenda || '',
+          foto: objeto.foto || ''
+        }
+      });
+    },
+    gerarDescricaoVenda: function (servidorUrl, token, descricao) {
+      return chamar(servidorUrl, token, '/api/objetos/gerar-descricao', {
+        method: 'POST',
+        body: { descricao: descricao }
+      });
+    },
     sugestaoCopiloto: function (servidorUrl, token, telefone, mensagemCliente) {
       return chamar(servidorUrl, token, '/api/copiloto/sugestao', {
         method: 'POST',

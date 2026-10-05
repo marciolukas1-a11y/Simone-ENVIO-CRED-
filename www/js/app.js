@@ -2,7 +2,7 @@
 var STAGES=[{id:'novo',nome:'Novo'},{id:'simulacao',nome:'Simulação'},{id:'proposta',nome:'Proposta'},{id:'contratado',nome:'Contratado'},{id:'perdido',nome:'Perdido'}];
 var ITEM_ST=[{id:'disponivel',nome:'Disponível'},{id:'reservado',nome:'Reservado'},{id:'vendido',nome:'Vendido'}];
 var S=null, storageOk=true;
-var ATENDENTE='Simone', TAXA_PADRAO=5, SERVIDOR_URL='', APP_API_TOKEN='';
+var ATENDENTE='Simone', TAXA_PADRAO=30, SERVIDOR_URL='', APP_API_TOKEN='';
 var conversasCache=[], iaPausada=false;
 var brl=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 function money(v){return brl.format(Number(v)||0)}
@@ -22,7 +22,7 @@ function seed(){
       {id:uid(),ex:true,nome:'Violão Takamine',preco:650,status:'disponivel',desc:'Bom estado, acompanha capa.'},
       {id:uid(),ex:true,nome:'Bicicleta aro 29',preco:900,status:'reservado',desc:'Pouco uso.'}
     ],
-    sim:{valor:1500,n:6,taxa:5,clientId:''}
+    sim:{valor:1500,n:6,taxa:30,clientId:''}
   };
 }
 
@@ -136,9 +136,11 @@ function updateSim(){
   if(a)a.href=waLink(cli?cli.tel:'',simText(S.sim,cli?cli.nome.split(' ')[0]:''));
 }
 function itemCard(it){
-  var msg='Olá! Tenho à venda: '+it.nome+' por '+money(it.preco)+'.'+(it.desc?' '+it.desc:'')+' Tem interesse?';
+  var textoVenda=it.descVenda||it.desc;
+  var msg='Olá! Tenho à venda: '+it.nome+' por '+money(it.preco)+'.'+(textoVenda?' '+textoVenda:'')+' Tem interesse?';
   return '<div class="card"><div class="row"><div><div class="name">'+esc(it.nome)+(it.ex?' <span class="tag">exemplo</span>':'')+'</div>'+
-   (it.desc?'<div class="sub">'+esc(it.desc)+'</div>':'')+'</div><span class="pill '+esc(it.status)+'">'+esc(itemName(it.status))+'</span></div>'+
+   (textoVenda?'<div class="sub">'+esc(textoVenda)+'</div>':'')+'</div><span class="pill '+esc(it.status)+'">'+esc(itemName(it.status))+'</span></div>'+
+   (it.foto?'<img src="'+it.foto+'" style="max-width:100%;border-radius:8px">':'')+
    '<div class="num">'+money(it.preco)+'</div>'+
    '<div class="btns"><a class="btn primary" target="_blank" rel="noopener" href="'+esc(waLink('',msg))+'" data-wa="1">Divulgar no WhatsApp</a>'+
    '<button class="btn" type="button" data-act="editItem" data-id="'+it.id+'">Editar</button></div></div>';
@@ -219,20 +221,68 @@ function clientForm(c){
    });
 }
 function itemForm(it){
-  var isNew=!it;it=it||{nome:'',preco:'',status:'disponivel',desc:''};
+  var isNew=!it;it=it||{nome:'',preco:'',status:'disponivel',desc:'',descVenda:'',foto:''};
   openSheet('<h3>'+(isNew?'Novo objeto':'Editar objeto')+'</h3>'+
    '<label class="f">Objeto<input name="nome" required value="'+esc(it.nome)+'"></label>'+
    '<div class="grid2"><label class="f">Preço (R$)<input name="preco" type="number" inputmode="decimal" min="0" step="0.01" required value="'+esc(it.preco)+'"></label>'+
    '<label class="f">Situação<select name="status">'+opt(ITEM_ST,it.status)+'</select></label></div>'+
-   '<label class="f">Descrição<textarea name="desc">'+esc(it.desc)+'</textarea></label>'+
+   '<label class="f">Descrição (escreva do seu jeito -- a IA corrige e usa pra vender)<textarea name="desc">'+esc(it.desc)+'</textarea></label>'+
+   '<div class="btns"><button class="btn" type="button" data-act="gerarDescricaoItem">Gerar descrição de venda com IA</button></div>'+
+   '<p class="note" id="item_desc_venda_preview" style="margin:0">'+(it.descVenda?'Descrição de venda atual: "'+esc(it.descVenda)+'"':'')+'</p>'+
+   '<label class="f">Foto (print do objeto)<input type="file" accept="image/*" id="item_foto_input"></label>'+
+   '<img id="item_foto_preview" style="max-width:140px;border-radius:8px" src="'+esc(it.foto)+'"'+(it.foto?'':' hidden')+'>'+
+   '<input type="hidden" name="foto" id="item_foto_hidden" value="'+esc(it.foto)+'">'+
+   '<input type="hidden" name="descVenda" id="item_descVenda_hidden" value="'+esc(it.descVenda)+'">'+
    '<div class="btns"><button class="btn primary" type="submit">Salvar</button><button class="btn" type="button" data-act="close">Cancelar</button>'+
    (isNew?'':'<button class="btn danger" type="button" data-act="askDel" data-kind="item" data-id="'+it.id+'">Excluir</button>')+'</div>',
    function(fd){
-     var data={nome:fd.get('nome').trim(),preco:Number(fd.get('preco'))||0,status:fd.get('status'),desc:fd.get('desc').trim()};
+     var data={nome:fd.get('nome').trim(),preco:Number(fd.get('preco'))||0,status:fd.get('status'),desc:fd.get('desc').trim(),descVenda:fd.get('descVenda')||'',foto:fd.get('foto')||''};
      if(!data.nome)return;
      if(isNew){data.id=uid();S.items.unshift(data)}else{Object.keys(data).forEach(function(k){it[k]=data[k]});delete it.ex}
      save();closeSheet();render(true);
+     sincronizarObjetoComServidor(isNew?data:it);
    });
+  var inputFoto=document.getElementById('item_foto_input');
+  if(inputFoto)inputFoto.addEventListener('change',function(){
+    var arquivo=inputFoto.files&&inputFoto.files[0];
+    if(!arquivo)return;
+    var leitor=new FileReader();
+    leitor.onload=function(){
+      var campo=document.getElementById('item_foto_hidden');
+      var prev=document.getElementById('item_foto_preview');
+      if(campo)campo.value=leitor.result;
+      if(prev){prev.src=leitor.result;prev.hidden=false}
+    };
+    leitor.readAsDataURL(arquivo);
+  });
+}
+async function gerarDescricaoItem(){
+  var descEl=form.querySelector('[name=desc]');
+  var hiddenEl=document.getElementById('item_descVenda_hidden');
+  var preview=document.getElementById('item_desc_venda_preview');
+  var desc=(descEl&&descEl.value||'').trim();
+  if(!desc){if(preview)preview.textContent='Escreva a descrição primeiro.';return}
+  if(!SERVIDOR_URL){if(preview)preview.textContent='Configure o endereço do servidor em Config primeiro.';return}
+  if(preview)preview.textContent='Gerando com a IA...';
+  try{
+    var r=await window.EnvioCredApi.gerarDescricaoVenda(SERVIDOR_URL,APP_API_TOKEN,desc);
+    if(hiddenEl)hiddenEl.value=r.descricao_venda||'';
+    if(preview)preview.textContent=r.descricao_venda?'Descrição de venda gerada: "'+r.descricao_venda+'"':'';
+  }catch(e){
+    if(preview)preview.textContent='Não consegui gerar agora: '+e.message;
+  }
+}
+// Manda o objeto (com a descrição de venda e a foto) pro servidor, pra IA
+// conseguir vender ele de verdade no WhatsApp. Melhor esforço: se o
+// servidor não estiver acessível agora, o objeto continua salvo aqui no
+// celular normalmente, só não aparece ainda pra IA.
+async function sincronizarObjetoComServidor(item){
+  if(!SERVIDOR_URL)return;
+  try{
+    await window.EnvioCredApi.salvarObjeto(SERVIDOR_URL,APP_API_TOKEN,item);
+  }catch(e){
+    console.error('Não consegui sincronizar o objeto com o servidor agora',e);
+  }
 }
 
 /* ---------- Configurações ---------- */
@@ -524,6 +574,7 @@ document.addEventListener('click',function(e){
   else if(act==='config')configSheet();
   else if(act==='salvarChavesTopo')salvarChavesTopo();
   else if(act==='toggleChavesTopo')toggleChavesTopo();
+  else if(act==='gerarDescricaoItem')gerarDescricaoItem();
   else if(act==='newClient')clientForm();
   else if(act==='editClient')clientForm(clientById(id));
   else if(act==='newItem')itemForm();
@@ -596,7 +647,7 @@ async function boot(){
     var loaded=await window.EnvioCredStorage.load();
     var settings=await window.EnvioCredStorage.getSettings();
     ATENDENTE=settings.atendente||'Simone';
-    TAXA_PADRAO=Number(settings.taxa_padrao)||5;
+    TAXA_PADRAO=Number(settings.taxa_padrao)||30;
     SERVIDOR_URL=settings.servidor_url||'';
     APP_API_TOKEN=settings.app_api_token||'';
     if(loaded){
