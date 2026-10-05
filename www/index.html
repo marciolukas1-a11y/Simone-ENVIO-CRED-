@@ -112,6 +112,16 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .panel .btn.primary{background:#0E5A55!important;border-color:#0E5A55!important;color:#FFFFFF!important}
 .panel .btn.danger{color:#B3261E!important}
 .panel .linkbtn{color:#0E5A55!important}
+/* Chaves de IA fixas no topo da tela principal -- em vez da janela
+   flutuante (sheet), que travava a tela em alguns aparelhos. Isto é
+   um bloco comum da página (sem position:fixed/absolute nenhum), por
+   isso não depende de sobreposição pra funcionar. */
+.chaves-top{flex:none;background:#FFFFFF!important;color:#10201F!important;border-bottom:1px solid #DAE2E0;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.chaves-top h3{margin:0;font-family:var(--f-display);font-size:16px;color:#10201F!important}
+.chaves-top .note{color:#586866!important}
+.chaves-top label.f{color:#586866!important}
+.chaves-top input{background:#F1F4F3!important;color:#10201F!important;border:1px solid #DAE2E0!important;border-radius:8px;padding:11px 12px;font-size:16px;width:100%}
+.chaves-top .btn.primary{background:#0E5A55!important;border-color:#0E5A55!important;color:#FFFFFF!important}
 </style>
 
 <div class="app">
@@ -122,6 +132,14 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
       <button class="linkbtn" data-act="backup" type="button">Backup</button>
     </div>
   </header>
+  <section class="chaves-top">
+    <h3>Chaves de IA</h3>
+    <p class="note" style="margin:0">Cole aqui a chave da Groq e da SearchApi.io. Ficam guardadas num cofre criptografado deste celular.</p>
+    <label class="f">Chave da Groq<input id="chaves_groq" type="text" autocomplete="off" placeholder="gsk_..."></label>
+    <label class="f">Chave da SearchApi.io<input id="chaves_research" type="text" autocomplete="off"></label>
+    <div class="btns"><button type="button" class="btn primary" data-act="salvarChavesTopo">Salvar no cofre</button></div>
+    <p class="note" id="chaves_topo_msg" style="margin:0">Carregando...</p>
+  </section>
   <main id="main" aria-live="polite"></main>
   <nav class="tabs" role="tablist" aria-label="Seções">
     <button role="tab" data-tab="clientes" type="button">Clientes</button>
