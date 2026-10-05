@@ -5,11 +5,11 @@ pela Simone pelo celular. Construído com [Capacitor](https://capacitorjs.com/)
 em cima do protótipo HTML aprovado — mesmo visual, agora com dados persistidos
 de verdade (SQLite) em vez de `localStorage` de navegador.
 
-> Status desta entrega (Fase 1): o APK de **debug** foi compilado e testado
-> estaticamente (ver seção "O que foi testado" abaixo), mas **ainda não foi
-> instalado nem testado num celular real** — isso precisa ser feito antes de
-> considerar a Fase 1 pronta de verdade. O ambiente onde isso foi construído
-> não tem um celular Android nem emulador conectado.
+> **Fase 1 (CRM local): testada e aprovada no celular por você.**
+> **Fase 2 (app, lado cliente do motor de atendimento — aba Conversas e modo
+> copiloto): APK de debug compilado com sucesso, mas ainda não testado num
+> celular real** — precisa do servidor (`server/`) rodando pra testar de
+> verdade (ver `server/README.md`).
 
 ## Estrutura
 
@@ -21,14 +21,33 @@ envio-cred-app/
 │   └── js/
 │       ├── storage.js     # SQLite (dados + configurações)
 │       ├── whatsapp.js     # Ponte para o plugin nativo WhatsAppOpener
-│       └── app.js          # Lógica do app (clientes, funil, simulador, objetos)
+│       ├── api.js          # Cliente HTTP pro servidor (server/) -- Fase 2
+│       ├── shareIntent.js  # Modo copiloto: escuta texto compartilhado -- Fase 2
+│       └── app.js          # Lógica do app (clientes, funil, simulador, objetos, conversas)
 ├── android/                # Projeto Android gerado pelo Capacitor
 │   └── app/src/main/java/com/enviocred/crm/
 │       ├── MainActivity.java
-│       └── WhatsAppOpenerPlugin.java   # Abre WhatsApp Business > comum > navegador
+│       ├── WhatsAppOpenerPlugin.java   # Abre WhatsApp Business > comum > navegador
+│       └── ShareIntentPlugin.java      # Recebe texto compartilhado (modo copiloto) -- Fase 2
+├── server/                 # Motor de atendimento por IA no WhatsApp -- ver server/README.md
 ├── capacitor.config.json
 └── package.json
 ```
+
+## Novidades da Fase 2 neste app (precisam do servidor rodando pra testar)
+
+- **Aba Conversas** (5ª aba): lista as conversas que o motor de atendimento
+  está tendo no WhatsApp, mostra se é a IA ou a Simone atendendo, e tem
+  botões **Assumir conversa** / **Devolver para a IA** / **Responder**.
+  Tem também o botão **Pausar IA** / **Retomar IA** (interruptor geral,
+  desliga a IA na hora pra todo mundo).
+- **Modo copiloto**: compartilhe um texto (ex: copiou uma mensagem do
+  WhatsApp Business) pro app **ENVIO CRED** pelo menu "Compartilhar" do
+  Android — abre uma tela pedindo uma sugestão de resposta à IA, que você
+  copia ou abre direto no WhatsApp Business. Nada é enviado sozinho nesse
+  modo.
+- Em **Config**, novo campo **Token da API do servidor** — precisa bater
+  com o `APP_API_TOKEN` configurado no `server/.env`.
 
 ## Pré-requisitos pra compilar
 
@@ -116,32 +135,29 @@ Sai em `android/app/build/outputs/apk/release/app-release.apk`.
 
 ## O que foi testado
 
+**Fase 1** (clientes, funil, simulador, objetos, backup): testada por você
+no celular — aprovada.
+
+**Fase 2 (parte do app — aba Conversas e modo copiloto), build atual:**
+
 - ✅ Compila sem erros (`./gradlew assembleDebug` — sucesso, APK gerado,
-  13,4 MB, `com.enviocred.crm`, `minSdkVersion 24`, `targetSdkVersion 36`).
-- ✅ Estrutura do APK validada com `aapt dump badging` (nome do pacote,
-  rótulo "ENVIO CRED", permissões declaradas corretas).
-- ✅ Fontes embutidas localmente (18 arquivos `.woff2`, ~220 KB no total,
-  sem nenhuma referência a `fonts.googleapis.com` no HTML final).
-- ❌ **Não testado num celular real** — não instalei, não abri as 4 abas,
-  não cadastrei cliente, não testei os botões de WhatsApp, não testei
-  tema claro/escuro no aparelho de verdade. Este ambiente de build não
-  tem celular Android nem emulador conectado (sem suporte a KVM).
+  13,4 MB, `com.enviocred.crm`).
+- ✅ Estrutura do APK validada com `aapt dump badging`.
+- ❌ **Não testado num celular real** — mesma limitação de sempre, este
+  ambiente de build não tem celular Android nem emulador conectado.
 
-**Preciso que você instale esse APK de debug no seu celular e confira, pelo
-menos:**
+**Preciso que você instale esse APK novo e confira, além do que já
+funcionava na Fase 1:**
 
-- [ ] Abre sem internet e sem travar
-- [ ] As 4 abas (Clientes, Funil, Simulador, Objetos) funcionam
-- [ ] Cadastrar um cliente novo e fechar/abrir o app de novo — o cliente
-      continua lá (prova que não é mais `localStorage` de navegador)
-- [ ] Botão de WhatsApp abre o **WhatsApp Business** (se você tiver os dois
-      instalados) e não dentro do app
-- [ ] Tema muda sozinho se você mudar claro/escuro nas configurações do
-      Android
-- [ ] Botão **Config** no topo abre a tela de nome de quem atende / taxa
-      padrão / endereço do servidor
-- [ ] Backup → "Gerar arquivo de backup" abre a tela de compartilhar do
-      Android
+- [ ] A barra de baixo agora tem 5 abas (a nova é **Conversas**)
+- [ ] Em **Config**, o novo campo "Token da API do servidor" aparece
+- [ ] Com o servidor (`server/`) rodando e endereço/token configurados, a
+      aba Conversas carrega (mesmo vazia, sem erro)
+- [ ] Botão **Pausar IA** / **Retomar IA** na aba Conversas muda de cor e
+      texto ao tocar
+- [ ] **Modo copiloto**: copia qualquer texto em outro app, usa o menu
+      "Compartilhar" do Android, escolhe **ENVIO CRED** na lista — abre a
+      tela de sugestão com o texto já preenchido
 
 Qualquer coisa que não funcionar do jeito esperado, me manda o que
 aconteceu (e se possível um print) que eu corrijo.

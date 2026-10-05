@@ -63,6 +63,15 @@
           '  servidor_url TEXT NOT NULL DEFAULT \'\'' +
           ');'
       });
+      // Migração: quem já tinha o app da Fase 1 instalado não tem essa
+      // coluna ainda. SQLite não tem "ADD COLUMN IF NOT EXISTS" -- tenta e
+      // ignora o erro se a coluna já existir.
+      try {
+        await CapacitorSQLite.execute({
+          database: DB_NAME,
+          statements: 'ALTER TABLE settings ADD COLUMN app_api_token TEXT NOT NULL DEFAULT \'\';'
+        });
+      } catch (e) { /* coluna já existe -- instalação nova ou já migrada */ }
     })();
     return ready;
   }
@@ -91,9 +100,9 @@
 
   async function getSettings() {
     await init();
-    var rows = await query('SELECT atendente, taxa_padrao, servidor_url FROM settings WHERE id = 1');
+    var rows = await query('SELECT atendente, taxa_padrao, servidor_url, app_api_token FROM settings WHERE id = 1');
     if (rows.length) return rows[0];
-    var defaults = { atendente: 'Simone', taxa_padrao: 5, servidor_url: '' };
+    var defaults = { atendente: 'Simone', taxa_padrao: 5, servidor_url: '', app_api_token: '' };
     await saveSettings(defaults);
     return defaults;
   }
@@ -104,9 +113,9 @@
     await CapacitorSQLite.run({
       database: DB_NAME,
       statement:
-        'INSERT INTO settings (id, atendente, taxa_padrao, servidor_url) VALUES (1, ?, ?, ?)' +
-        ' ON CONFLICT(id) DO UPDATE SET atendente = excluded.atendente, taxa_padrao = excluded.taxa_padrao, servidor_url = excluded.servidor_url;',
-      values: [s.atendente, Number(s.taxa_padrao) || 0, s.servidor_url || '']
+        'INSERT INTO settings (id, atendente, taxa_padrao, servidor_url, app_api_token) VALUES (1, ?, ?, ?, ?)' +
+        ' ON CONFLICT(id) DO UPDATE SET atendente = excluded.atendente, taxa_padrao = excluded.taxa_padrao, servidor_url = excluded.servidor_url, app_api_token = excluded.app_api_token;',
+      values: [s.atendente, Number(s.taxa_padrao) || 0, s.servidor_url || '', s.app_api_token || '']
     });
   }
 

@@ -23,6 +23,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Modo copiloto: permite compartilhar um texto (ex: mensagem
+                 copiada do WhatsApp) para o ENVIO CRED pelo menu de
+                 compartilhar do Android; ver ShareIntentPlugin.java -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
         </activity>
 
         <provider

@@ -2,7 +2,8 @@
 var STAGES=[{id:'novo',nome:'Novo'},{id:'simulacao',nome:'Simulação'},{id:'proposta',nome:'Proposta'},{id:'contratado',nome:'Contratado'},{id:'perdido',nome:'Perdido'}];
 var ITEM_ST=[{id:'disponivel',nome:'Disponível'},{id:'reservado',nome:'Reservado'},{id:'vendido',nome:'Vendido'}];
 var S=null, storageOk=true;
-var ATENDENTE='Simone', TAXA_PADRAO=5, SERVIDOR_URL='';
+var ATENDENTE='Simone', TAXA_PADRAO=5, SERVIDOR_URL='', APP_API_TOKEN='';
+var conversasCache=[], iaPausada=false;
 var brl=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 function money(v){return brl.format(Number(v)||0)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -151,12 +152,44 @@ function viewObjetos(){
    '<div class="fab"><button class="btn primary wide" type="button" data-act="newItem">Novo objeto</button></div>';
 }
 
+function conversaCard(c){
+  var atendendoIa=c.atendido_por==='ia';
+  return '<div class="card"><div class="row"><div><div class="name">'+esc(c.telefone)+'</div>'+
+   (c.ultima_mensagem?'<div class="sub">'+esc(c.ultima_mensagem)+'</div>':'')+'</div>'+
+   '<span class="pill '+(atendendoIa?'simulacao':'contratado')+'">'+(atendendoIa?'IA atendendo':'Simone atendendo')+'</span></div>'+
+   '<div class="btns">'+
+   (atendendoIa
+     ?'<button class="btn" type="button" data-act="assumirConversa" data-tel="'+esc(c.telefone)+'">Assumir conversa</button>'
+     :'<button class="btn" type="button" data-act="devolverConversa" data-tel="'+esc(c.telefone)+'">Devolver para a IA</button>')+
+   '<button class="btn primary" type="button" data-act="responderConversa" data-tel="'+esc(c.telefone)+'">Responder</button>'+
+   '</div></div>';
+}
+function viewConversas(){
+  var aviso=!SERVIDOR_URL?'<div class="banner"><span>Configure o endereço do servidor em Config para ver as conversas.</span></div>':'';
+  return banner()+aviso+
+   '<div class="row" style="margin-bottom:12px"><h2 style="margin:0">Conversas</h2>'+
+   '<button class="btn '+(iaPausada?'primary':'danger')+'" type="button" data-act="alternarPausaIa">'+(iaPausada?'Retomar IA':'Pausar IA')+'</button></div>'+
+   '<div class="list" id="conversasList">'+
+   (conversasCache.length?conversasCache.map(conversaCard).join(''):'<div class="empty">Nenhuma conversa ainda (ou servidor não configurado/offline).</div>')+
+   '</div>';
+}
+async function carregarConversas(){
+  if(!SERVIDOR_URL)return;
+  try{
+    conversasCache=await window.EnvioCredApi.listarConversas(SERVIDOR_URL,APP_API_TOKEN);
+    var cfg=await window.EnvioCredApi.obterConfiguracoesServidor(SERVIDOR_URL,APP_API_TOKEN);
+    iaPausada=!!cfg.ia_pausada;
+    if(ui.tab==='conversas')render(true);
+  }catch(e){console.error('Falha ao carregar conversas',e)}
+}
+
 function render(keepScroll){
   var st=$main.scrollTop;
-  var v={clientes:viewClientes,funil:viewFunil,simulador:viewSimulador,objetos:viewObjetos}[ui.tab]();
+  var v={clientes:viewClientes,funil:viewFunil,simulador:viewSimulador,objetos:viewObjetos,conversas:viewConversas}[ui.tab]();
   $main.innerHTML=v;
   Array.prototype.forEach.call(document.querySelectorAll('.tabs button'),function(b){b.setAttribute('aria-selected',String(b.getAttribute('data-tab')===ui.tab))});
   if(ui.tab==='simulador')updateSim();
+  if(ui.tab==='conversas')carregarConversas();
   if(keepScroll)$main.scrollTop=st;
 }
 
@@ -209,14 +242,16 @@ function configSheet(){
    '<label class="f">Nome de quem atende<input name="atendente" required value="'+esc(ATENDENTE)+'"></label>'+
    '<label class="f">Taxa padrão do simulador (% ao mês)<input name="taxa_padrao" type="number" inputmode="decimal" min="0" step="0.1" value="'+esc(TAXA_PADRAO)+'"></label>'+
    '<label class="f">Endereço do servidor (motor de atendimento)<input name="servidor_url" type="url" placeholder="http://192.168.0.10:3000" value="'+esc(SERVIDOR_URL)+'"></label>'+
-   '<p class="note" style="margin:0">O endereço do servidor é usado nas próximas fases, para ligar este app ao motor de atendimento por IA no WhatsApp. Pode deixar em branco por enquanto.</p>'+
+   '<label class="f">Token da API do servidor (APP_API_TOKEN)<input name="app_api_token" type="text" autocomplete="off" value="'+esc(APP_API_TOKEN)+'"></label>'+
+   '<p class="note" style="margin:0">Endereço e token ligam este app ao motor de atendimento por IA no WhatsApp (aba Conversas e modo copiloto). Pode deixar em branco até a Fase 2 estar rodando no Termux.</p>'+
    '<div class="btns"><button class="btn primary" type="submit">Salvar</button><button class="btn" type="button" data-act="close">Cancelar</button></div>',
    async function(fd){
      ATENDENTE=fd.get('atendente').trim()||'Simone';
      TAXA_PADRAO=Number(fd.get('taxa_padrao'))||0;
      SERVIDOR_URL=fd.get('servidor_url').trim();
+     APP_API_TOKEN=fd.get('app_api_token').trim();
      try{
-       await window.EnvioCredStorage.saveSettings({atendente:ATENDENTE,taxa_padrao:TAXA_PADRAO,servidor_url:SERVIDOR_URL});
+       await window.EnvioCredStorage.saveSettings({atendente:ATENDENTE,taxa_padrao:TAXA_PADRAO,servidor_url:SERVIDOR_URL,app_api_token:APP_API_TOKEN});
      }catch(e){storageOk=false;console.error('Falha ao salvar configurações',e)}
      form.className='';closeSheet();render(true);
    });
@@ -278,6 +313,63 @@ function handleBackupFileChosen(file){
   reader.readAsText(file);
 }
 
+/* ---------- Conversas (Fase 2) ---------- */
+function responderConversaSheet(telefone){
+  form.className='';
+  openSheet('<h3>Responder '+esc(telefone)+'</h3>'+
+   '<label class="f">Mensagem<textarea name="texto" required autofocus></textarea></label>'+
+   '<div class="btns"><button class="btn primary" type="submit">Enviar pelo servidor</button><button class="btn" type="button" data-act="close">Cancelar</button></div>'+
+   '<p class="note" id="conv_msg" style="margin:0"></p>',
+   async function(fd){
+     var texto=fd.get('texto').trim();
+     if(!texto)return;
+     var m=document.getElementById('conv_msg');
+     try{
+       await window.EnvioCredApi.responderConversa(SERVIDOR_URL,APP_API_TOKEN,telefone,texto);
+       closeSheet();carregarConversas();
+     }catch(e){if(m)m.textContent='Não consegui enviar: '+e.message}
+   });
+}
+async function alternarPausaIa(){
+  try{
+    if(iaPausada)await window.EnvioCredApi.retomarIa(SERVIDOR_URL,APP_API_TOKEN);
+    else await window.EnvioCredApi.pausarIa(SERVIDOR_URL,APP_API_TOKEN);
+    iaPausada=!iaPausada;
+    render(true);
+  }catch(e){console.error('Falha ao pausar/retomar IA',e);alert('Não consegui falar com o servidor: '+e.message)}
+}
+
+/* ---------- Modo copiloto: compartilhar mensagem -> sugestão da IA ---------- */
+function copilotoSheet(textoCompartilhado){
+  form.className='';
+  openSheet('<h3>Sugestão da IA</h3>'+
+   '<label class="f">Mensagem do cliente (compartilhada)<textarea name="mensagem_cliente" required>'+esc(textoCompartilhado)+'</textarea></label>'+
+   '<label class="f">Telefone do cliente (opcional, com DDD)<input name="telefone" type="tel" placeholder="(83) 90000-0000"></label>'+
+   '<div class="btns"><button class="btn primary" type="submit">Gerar sugestão</button><button class="btn" type="button" data-act="close">Cancelar</button></div>'+
+   '<div id="copiloto_resultado"></div>',
+   async function(fd){
+     var mensagem=fd.get('mensagem_cliente').trim();
+     var telInput=fd.get('telefone').trim();
+     var resultadoEl=document.getElementById('copiloto_resultado');
+     if(!mensagem)return;
+     resultadoEl.innerHTML='<p class="note">Pensando...</p>';
+     try{
+       var telefoneNormalizado=telInput?waNumber(telInput):'';
+       var resp=await window.EnvioCredApi.sugestaoCopiloto(SERVIDOR_URL,APP_API_TOKEN,telefoneNormalizado,mensagem);
+       var sugestao=resp.sugestao||'';
+       resultadoEl.innerHTML='<label class="f">Sugestão<textarea class="mono" id="copiloto_sugestao" readonly>'+esc(sugestao)+'</textarea></label>'+
+        '<div class="btns" style="margin-top:8px"><button class="btn" type="button" data-act="copiarSugestaoCopiloto">Copiar</button>'+
+        (telefoneNormalizado?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(waLink(telInput,sugestao))+'" data-wa="1">Abrir no WhatsApp Business</a>':'')+
+        '</div>';
+     }catch(e){
+       resultadoEl.innerHTML='<p class="note">Não consegui gerar a sugestão: '+esc(e.message)+'</p>';
+     }
+   });
+}
+document.addEventListener('enviocred:textoCompartilhado',function(e){
+  copilotoSheet(e.detail.texto||'');
+});
+
 /* ---------- WhatsApp Business: abrir fora do app, Business primeiro ---------- */
 function openWhatsApp(e){
   var a=e.target.closest('[data-wa]');
@@ -337,6 +429,18 @@ document.addEventListener('click',function(e){
   }
   else if(act==='exportFile'){exportBackupFile()}
   else if(act==='importFile'){importBackupFile()}
+  else if(act==='assumirConversa'){
+    window.EnvioCredApi.assumirConversa(SERVIDOR_URL,APP_API_TOKEN,t.getAttribute('data-tel')).then(carregarConversas).catch(function(e){alert('Falha: '+e.message)});
+  }
+  else if(act==='devolverConversa'){
+    window.EnvioCredApi.devolverParaIa(SERVIDOR_URL,APP_API_TOKEN,t.getAttribute('data-tel')).then(carregarConversas).catch(function(e){alert('Falha: '+e.message)});
+  }
+  else if(act==='responderConversa'){responderConversaSheet(t.getAttribute('data-tel'))}
+  else if(act==='alternarPausaIa'){alternarPausaIa()}
+  else if(act==='copiarSugestaoCopiloto'){
+    var ta=document.getElementById('copiloto_sugestao');
+    if(ta)copyText(ta.value,function(){},function(){});
+  }
 });
 document.addEventListener('change',function(e){
   if(e.target.id==='s_cli'){S.sim.clientId=e.target.value;save();updateSim()}
@@ -359,6 +463,7 @@ async function boot(){
     ATENDENTE=settings.atendente||'Simone';
     TAXA_PADRAO=Number(settings.taxa_padrao)||5;
     SERVIDOR_URL=settings.servidor_url||'';
+    APP_API_TOKEN=settings.app_api_token||'';
     if(loaded){
       S=loaded;
     }else{
