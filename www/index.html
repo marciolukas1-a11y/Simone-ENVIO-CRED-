@@ -122,6 +122,9 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .chaves-top label.f{color:#586866!important}
 .chaves-top input{background:#F1F4F3!important;color:#10201F!important;border:1px solid #DAE2E0!important;border-radius:8px;padding:11px 12px;font-size:16px;width:100%}
 .chaves-top .btn.primary{background:#0E5A55!important;border-color:#0E5A55!important;color:#FFFFFF!important}
+.chaves-top .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chaves-top .linkbtn{color:#0E5A55!important;background:none;border:0;font-weight:600;padding:4px 0;cursor:pointer}
+#chaves_campos{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 </style>
 
 <div class="app">
@@ -133,12 +136,16 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
     </div>
   </header>
   <section class="chaves-top">
-    <h3>Chaves de IA</h3>
-    <p class="note" style="margin:0">Cole aqui a chave da Groq e da SearchApi.io. Ficam guardadas num cofre criptografado deste celular.</p>
-    <label class="f">Chave da Groq<input id="chaves_groq" type="text" autocomplete="off" placeholder="gsk_..."></label>
-    <label class="f">Chave da SearchApi.io<input id="chaves_research" type="text" autocomplete="off"></label>
-    <div class="btns"><button type="button" class="btn primary" data-act="salvarChavesTopo">Salvar no cofre</button></div>
+    <div class="row">
+      <h3>Chaves de IA</h3>
+      <button type="button" class="linkbtn" id="chaves_toggle_btn" data-act="toggleChavesTopo">Editar</button>
+    </div>
     <p class="note" id="chaves_topo_msg" style="margin:0">Carregando...</p>
+    <div id="chaves_campos" hidden>
+      <label class="f">Chave da Groq<input id="chaves_groq" type="text" autocomplete="off" placeholder="gsk_..."></label>
+      <label class="f">Chave da SearchApi.io<input id="chaves_research" type="text" autocomplete="off"></label>
+      <div class="btns"><button type="button" class="btn primary" data-act="salvarChavesTopo">Salvar no cofre</button></div>
+    </div>
   </section>
   <main id="main" aria-live="polite"></main>
   <nav class="tabs" role="tablist" aria-label="Seções">

@@ -272,6 +272,16 @@ function configSheet(){
  * com segurança aqui e o app tenta sincronizar de novo sozinho no
  * próximo boot.
  */
+function mostrarCamposChaves(mostrar){
+  var campos=document.getElementById('chaves_campos');
+  var botao=document.getElementById('chaves_toggle_btn');
+  if(campos)campos.hidden=!mostrar;
+  if(botao)botao.textContent=mostrar?'Esconder':'Editar';
+}
+function toggleChavesTopo(){
+  var campos=document.getElementById('chaves_campos');
+  mostrarCamposChaves(campos?campos.hidden:true);
+}
 async function carregarChavesTopo(){
   var m=document.getElementById('chaves_topo_msg');
   try{
@@ -282,6 +292,9 @@ async function carregarChavesTopo(){
     if(campoGroq&&groqSalva)campoGroq.value=groqSalva;
     if(campoResearch&&researchSalva)campoResearch.value=researchSalva;
     if(m)m.textContent='Neste celular -- Groq: '+(groqSalva?'guardada ✓':'ainda não guardada')+' · SearchApi: '+(researchSalva?'guardada ✓':'ainda não guardada');
+    // Já tem as duas guardadas: esconde os campos pra não ocupar a tela toda.
+    // Falta alguma: deixa aberto, é provavelmente a primeira configuração.
+    mostrarCamposChaves(!(groqSalva&&researchSalva));
   }catch(e){
     if(m)m.textContent='Não consegui ler o cofre: '+e.message;
   }
@@ -304,6 +317,7 @@ async function salvarChavesTopo(){
   }catch(e){
     if(m)m.textContent='Guardado neste celular ✓ (não consegui enviar ao servidor agora -- tentará de novo sozinho).';
   }
+  mostrarCamposChaves(false);
 }
 // Tenta mandar pro servidor as chaves que já estão no cofre deste celular.
 // É "melhor esforço": se o servidor não estiver acessível agora, não tem
@@ -509,6 +523,7 @@ document.addEventListener('click',function(e){
   else if(act==='backup')backupSheet();
   else if(act==='config')configSheet();
   else if(act==='salvarChavesTopo')salvarChavesTopo();
+  else if(act==='toggleChavesTopo')toggleChavesTopo();
   else if(act==='newClient')clientForm();
   else if(act==='editClient')clientForm(clientById(id));
   else if(act==='newItem')itemForm();
