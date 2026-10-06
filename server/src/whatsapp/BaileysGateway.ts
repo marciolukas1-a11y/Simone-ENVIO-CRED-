@@ -115,9 +115,20 @@ export class BaileysGateway implements WhatsAppGateway {
     if (this.sock.authState.creds.registered) {
       throw new Error('Este número já está pareado. Desconecte antes de parear de novo.');
     }
-    const codigo = await this.sock.requestPairingCode(this.phoneNumber);
-    logger.info({ codigo }, 'Código de pareamento gerado');
-    return codigo;
+    try {
+      const codigo = await this.sock.requestPairingCode(this.phoneNumber);
+      logger.info({ codigo }, 'Código de pareamento gerado');
+      return codigo;
+    } catch (e: any) {
+      // Baileys às vezes rejeita com um objeto sem .message (ex: erro de
+      // conexão ainda não pronta) -- nunca deixa isso virar uma mensagem
+      // vazia pro app, sempre dá algo pra Simone/Márcio lerem ou me
+      // mandarem de volta.
+      const detalhe = (e && (e.message || e.toString())) || JSON.stringify(e);
+      throw new Error(
+        `Não consegui pedir o código ao WhatsApp (${detalhe}). Se o servidor acabou de ligar, espere alguns segundos e tente de novo.`
+      );
+    }
   }
 
   async marcarDigitando(telefone: string): Promise<void> {

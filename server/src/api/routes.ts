@@ -32,8 +32,9 @@ export function registrarRotas(app: FastifyInstance, gateway: WhatsAppGateway): 
       const codigo = await gateway.obterCodigoPareamento();
       return { codigo };
     } catch (e: any) {
+      logger.error(e, 'Falha ao gerar código de pareamento');
       reply.code(400);
-      return { erro: e.message };
+      return { erro: (e && e.message) || 'falha ao gerar código -- veja o log do servidor' };
     }
   });
 
