@@ -5,6 +5,7 @@ import makeWASocket, {
   type WASocket,
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
+import { rmSync } from 'node:fs';
 import type { WhatsAppGateway, StatusConexao } from './WhatsAppGateway.js';
 import { logger } from '../logging/logger.js';
 
@@ -71,7 +72,19 @@ export class BaileysGateway implements WhatsAppGateway {
         if (deveReconectar) {
           setTimeout(() => this.iniciar().catch((e) => logger.error(e, 'Falha ao reconectar')), 3000);
         } else {
-          logger.warn('WhatsApp: sessão encerrada (logout) -- precisa parear de novo.');
+          // Sessão de verdade encerrada (logout) -- as credenciais salvas em
+          // disco não servem mais pra nada, e insistir nelas é o que fazia o
+          // servidor ficar preso pra sempre recusando conexão (Connection
+          // Closed) toda vez que alguém tentava parear de novo, mesmo depois
+          // de reiniciar. Apaga a sessão velha e já prepara um pareamento
+          // limpo, novo, pronto pro próximo "Gerar código".
+          logger.warn('WhatsApp: sessão encerrada (logout) -- apagando sessão antiga e preparando novo pareamento.');
+          try {
+            rmSync(this.sessionDir, { recursive: true, force: true });
+          } catch (e) {
+            logger.error(e, 'Falha ao apagar a sessão antiga do WhatsApp');
+          }
+          setTimeout(() => this.iniciar().catch((e) => logger.error(e, 'Falha ao reiniciar após logout')), 1000);
         }
       } else if (connection === 'open') {
         logger.info('WhatsApp: conectado');
