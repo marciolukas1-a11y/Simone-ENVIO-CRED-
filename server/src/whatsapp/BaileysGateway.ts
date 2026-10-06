@@ -55,7 +55,12 @@ export class BaileysGateway implements WhatsAppGateway {
     const sock = makeWASocket({
       auth: state,
       printQRInTerminal: false,
-      browser: Browsers.ubuntu('ENVIO CRED'),
+      // "Browsers.ubuntu('ENVIO CRED')" (nome customizado) vinha sendo
+      // rejeitado no pareamento por código -- o WhatsApp ficou mais
+      // rígido sobre a identidade do aparelho nesse fluxo específico
+      // desde uma mudança de protocolo em 2026. macOS/Desktop é uma
+      // identidade padrão, mais aceita de forma confiável.
+      browser: Browsers.macOS('Desktop'),
     });
     this.sock = sock;
 
