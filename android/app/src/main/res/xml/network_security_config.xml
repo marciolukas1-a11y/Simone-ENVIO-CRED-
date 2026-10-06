@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  O motor de atendimento (Fase 2) roda local, no próprio celular via
+  Termux, e fala com o app por http (sem "s") em localhost, sem nunca
+  sair do aparelho. O Android bloqueia conexão sem criptografia por
+  padrão; aqui liberamos isso só pra localhost/127.0.0.1, não pra internet.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>
