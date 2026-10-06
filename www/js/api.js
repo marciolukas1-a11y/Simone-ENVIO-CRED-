@@ -12,13 +12,23 @@
   async function chamar(servidorUrl, token, caminho, opcoes) {
     opcoes = opcoes || {};
     if (!servidorUrl) throw new Error('Endereço do servidor não configurado (ver Configurações).');
+    var metodo = opcoes.method || 'GET';
+    // Sempre mandamos Content-Type: application/json, mas um POST/PUT sem
+    // corpo nenhum (ex: parear WhatsApp, pausar IA) manda isso com corpo
+    // vazio -- o servidor (Fastify) rejeita isso com 400 ANTES de chegar na
+    // rota de verdade (nem loga nada), então o app achava que era erro do
+    // pareamento quando na real era só a requisição malformada. Um POST sem
+    // corpo próprio manda "{}" em vez de nada.
+    var corpo;
+    if (opcoes.body) corpo = JSON.stringify(opcoes.body);
+    else if (metodo !== 'GET') corpo = '{}';
     var resposta = await fetch(baseUrl(servidorUrl) + caminho, {
-      method: opcoes.method || 'GET',
+      method: metodo,
       headers: Object.assign(
         { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || '') },
         opcoes.headers || {}
       ),
-      body: opcoes.body ? JSON.stringify(opcoes.body) : undefined
+      body: corpo
     });
     var dados = null;
     try { dados = await resposta.json(); } catch (e) { /* resposta sem corpo */ }
