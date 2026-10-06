@@ -3,6 +3,6 @@
   "appName": "ENVIO CRED",
   "webDir": "www",
   "android": {
-    "allowMixedContent": false
+    "allowMixedContent": true
   }
 }
